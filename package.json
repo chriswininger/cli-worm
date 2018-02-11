@@ -12,6 +12,7 @@
   "dependencies": {
     "async": "^2.6.0",
     "blessed": "^0.1.81",
+    "log4js": "^2.5.2",
     "tmp": "0.0.33",
     "unzip": "^0.1.11",
     "xml-parser": "^1.2.1"
