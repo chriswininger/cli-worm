@@ -40,15 +40,25 @@ module.exports = {
     },
     getNCXFile(rootFilePath) {
       return new Promise((resolve, reject) => {
+          logger.debug('reading rootFile: "${rootFilePath}"')
           fs.readFile(rootFilePath, 'utf8', (err, xml) => {
               if (err)
                   return reject(err)
 
+              const isChapterSpcifier = child => {
+                  const attrs = child.attributes
+                  return child.name === 'item' && attrs['media-type'] === 'application/x-dtbncx+xml'
+                  /*return child.name === 'item' &&
+                      (attrs.id === 'ncx' || attrs.id === 'toc' || attrs.id === 'ncxtoc')*/
+              }
+
               const xmlObj = parse(xml)
 
-              const refObj = xmlObj.root.children
-                .find(child => child.name === 'manifest').children
-                .find(child => child.name === 'item' && (child.attributes.id === 'ncx' || child.attributes.id === 'toc'))
+              const manifestObj = xmlObj.root.children.find(child => child.name === 'manifest').children
+              const refObj = manifestObj.find(isChapterSpcifier)
+
+              if (!refObj)
+				  return logger.debug('missing refObj: ' + JSON.stringify(manifestObj, null, 4))
 
               const ref = refObj.attributes.href
               resolve(ref)
@@ -92,7 +102,6 @@ module.exports = {
                 const obj = parse(xml);
 
                 const list = extractChapters(obj.root.children.find(node => node.name === 'navMap'))
-                logger.debug('root: ' + JSON.stringify(list, null, 4))
                 resolve(list)
             })
         })
