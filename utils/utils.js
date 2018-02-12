@@ -40,7 +40,7 @@ module.exports = {
     },
     getNCXFile(rootFilePath) {
       return new Promise((resolve, reject) => {
-          logger.debug('reading rootFile: "${rootFilePath}"')
+          logger.debug(`reading rootFile: "${rootFilePath}"`)
           fs.readFile(rootFilePath, 'utf8', (err, xml) => {
               if (err)
                   return reject(err)
@@ -71,7 +71,20 @@ module.exports = {
                 if (err)
                     return reject(err)
 
-                const paddingForParts = '  '
+				const paddingForParts = '  '
+
+                // === Helpers
+
+                // use to strip and directives like !DOCTYPE from our file before we try to parse it as xml
+                const stripDocType = xml => {
+					const location = xml.indexOf('<!DOCTYPE')
+					if (location < 0)
+						return xml
+
+					const endLocation = xml.slice(location).indexOf('>') + location + 1
+					return xml.slice(0, location) + xml.slice(endLocation)
+				}
+
                 const extractChapters = (root, padding) => {
                     if (typeof padding === 'undefined')
                         padding = ''
@@ -85,21 +98,23 @@ module.exports = {
                                 text: padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content,
                                 link: linkBlock.attributes.src
                             })
-
-                            //console.log(navPoint)
-
                             // recur back for any nested chapters
                             list = list.concat(extractChapters(navPoint, padding + paddingForParts))
                         })
 
                     return list
                 }
-
+                // ====
                 // cheep hack, for now
-                const str = '<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">'
-                xml = xml.replace(str, '')
-
+                //const str = '<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">'
+                //xml = xml.replace(str, '')
+                xml = stripDocType(xml)
                 const obj = parse(xml);
+
+                if (!obj.root) {
+                    logger.debug(`failed to parse xml:\n\n ${xml}`)
+                    return process.exit(1)
+                }
 
                 const list = extractChapters(obj.root.children.find(node => node.name === 'navMap'))
                 resolve(list)
@@ -133,6 +148,7 @@ module.exports = {
             })
         })
     },
+
     unzip(zipFilePath, outPath) {
         return new Promise((resolve, reject) => {
             fs.createReadStream(zipFilePath).pipe(unzip.Extract({path: outPath}))
