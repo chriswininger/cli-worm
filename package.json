@@ -1,5 +1,5 @@
 {
-  "name": "epub-reading",
+  "name": "cli-worm",
   "version": "0.0.1",
   "description": "an epub reader for the command line",
   "main": "index.js",
@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "async": "^2.6.0",
     "blessed": "^0.1.81",
