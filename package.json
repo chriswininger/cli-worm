@@ -1,8 +1,9 @@
 {
   "name": "epub-reading",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "an epub reader for the command line",
   "main": "index.js",
+  "bin": { "cli-worm": "./index.js" },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
