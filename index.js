@@ -12,6 +12,7 @@ if (!filePath) {
 
 const ui = new UI()
 let baseLoc = null
+let contentFolder = null
 
 createTempDir()
 	.then((tmp) => unzip(filePath, tmp))
@@ -19,18 +20,23 @@ createTempDir()
 		baseLoc = tmpPath
 		return getRootFile(baseLoc + '/META-INF/container.xml')
 	})
-	.then((mainFilePath) => {
-		return getNCXFile(baseLoc + '/' + mainFilePath)
+	.then((mainFileInfo) => {
+		contentFolder = mainFileInfo.folder
+		return getNCXFile(baseLoc + '/' + mainFileInfo.filePath)
 	})
-	.then((chpFile) => {
-        const chpListLocation = baseLoc + '/OEBPS/' + chpFile
+	.then(chpFile => {
+		// location is specified relative to the location of the main file (opf) was found
+        const chpListLocation = `${baseLoc}/${contentFolder}/${chpFile}`
 		return getChapters(chpListLocation)
     }).then(chapterList => {
     	ui.setChapters(chapterList)
 	})
+	.catch(err => {
+		ui.setContent(`error: "${err}"`)
+	})
 
 ui.on('chapter-select', (chp) => {
-    renderChapter(baseLoc + '/OEBPS/' + chp.link)
+    renderChapter(`${baseLoc}/${contentFolder}/${chp.link}`)
 		.then((text) => ui.setContent(text))
 		.catch(err => ui.setContent('error: ' + err))
 })

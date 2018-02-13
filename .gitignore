@@ -4,3 +4,4 @@ mimetype
 .DS_STORE
 .idea
 *.log
+tests/*
