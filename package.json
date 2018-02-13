@@ -1,13 +1,16 @@
 {
   "name": "cli-worm",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "an epub reader for the command line",
   "main": "index.js",
   "bin": { "cli-worm": "./index.js" },
+  "repository": "chriswininger/epub-reader",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+		"epub", "e-reader", "ebooks", "cli"
+	],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -20,3 +23,4 @@
     "xml-parser": "^1.2.1"
   }
 }
+
