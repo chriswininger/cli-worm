@@ -24,6 +24,4 @@ an encyclopedia is?
     for your platform of choice 
 
 #### Installation Instructions
-1. clone repo
-2. cd to repo
-3. run `npm install -g ./`
+`npm install -g cli-worm`
