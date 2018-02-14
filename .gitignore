@@ -4,4 +4,5 @@ mimetype
 .DS_STORE
 .idea
 *.log
+.snapcraft
 tests/*
