@@ -19,8 +19,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "async": "^2.6.0",
     "blessed": "^0.1.81",
+    "dotenv": "^5.0.0",
     "log4js": "^2.5.2",
     "mkdirp": "^0.5.1",
     "tmp": "0.0.33",
