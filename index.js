@@ -39,6 +39,9 @@ createTempDir()
 
 ui.on('chapter-select', (chp) => {
     renderChapter(`${baseLoc}/${contentFolder}/${chp.link}`)
-		.then((text) => ui.setContent(text))
+		.then((text) => {
+			ui.setContent(text)
+			ui.content.focus()
+		})
 		.catch(err => ui.setContent('error: ' + err))
 })

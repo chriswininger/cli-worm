@@ -5,14 +5,9 @@ const parse = require('xml-parser');
 const { spawn } = require('child_process')
 const mkdirp = require('mkdirp')
 const path = require('path')
-const { configure, getLogger } = require('log4js');
+const { getLogger } = require(__dirname + '/utils.logger.js')
 
-configure({
-    appenders: { debug: { type: 'file', filename: 'debug.log' } },
-    categories: { default: { appenders: ['debug'], level: 'debug' } }
-});
-const logger = getLogger('debug');
-logger.level = 'debug';
+const logger = getLogger('debug')
 
 module.exports = {
     createTempDir() {

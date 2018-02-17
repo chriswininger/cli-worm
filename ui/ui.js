@@ -1,5 +1,10 @@
 const blessed = require('blessed')
 const EventEmitter = require('events');
+const { getLogger } = require(__dirname + '/../utils/utils.logger.js')
+
+const logger = getLogger('debug')
+const selectedBorderColor = '#008000'
+const unSelectedBorderColor = '#f0f0f0'
 
 module.exports = class UI extends EventEmitter {
     constructor() {
@@ -40,7 +45,7 @@ module.exports = class UI extends EventEmitter {
             style: {
                 fg: 'white',
                 border: {
-                    fg: '#f0f0f0'
+                    fg: unSelectedBorderColor
                 }
             }
         });
@@ -58,6 +63,7 @@ module.exports = class UI extends EventEmitter {
             tags: true,
             mouse: true,
             scrollable: true,
+            alwaysScroll: true,
             keyable: true,
             clickable: true,
             scrollbar: {
@@ -78,25 +84,54 @@ module.exports = class UI extends EventEmitter {
     }
 
     createEventHandlers(screen, chapters, content) {
-        screen.key(['escape', 'q', 'C-c'], (ch, key) => {
+        screen.key(['escape', 'q', 'C-c'], () => {
             return process.exit(0);
         });
-        screen.key(['tab'], (ch, key) => {
+        screen.key(['tab'], () => {
             screen.focusNext();
         });
+        screen.key(['pagedown'], () => {
+            content.scroll(this.content.height - 2)
+            this.render()
+        })
+        screen.key(['pageup'], () => {
+            content.scroll(0 - this.content.height - 2)
+            this.render()
+        })
 
         chapters.on('select', (event, ndx) => {
             this.emit('chapter-select', this.chaptersList[ndx])
-        });
+        })
 
         content.key('down', ()=> {
             content.scroll(1);
             screen.render();
-        });
+        })
+
         content.key('up', ()=> {
             content.scroll(-1);
             screen.render();
-        });
+        })
+
+        content.on('focus', () => {
+            content.style.border.fg = selectedBorderColor
+            this.render()
+        })
+
+        chapters.on('focus', () => {
+            chapters.style.border.fg = selectedBorderColor
+            this.render()
+        })
+
+        content.on('blur', () => {
+            content.style.border.fg = unSelectedBorderColor
+            this.render()
+        })
+
+        chapters.on('blur', () => {
+            chapters.style.border.fg = unSelectedBorderColor
+            this.render()
+        })
     }
     setChapters(chaptersList) {
         this.chaptersList = chaptersList
