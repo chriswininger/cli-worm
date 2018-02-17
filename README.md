@@ -14,7 +14,7 @@ an encyclopedia is?
 
   **Then this app is for you!**
 
-![Alt text](/docs/images/cli-worm-screen-grab.png?raw=true "Screen Capture)
+![Alt text](docs/images/cli-worm-screen-grab.png?raw=true "Screen Capture")
 
 #### Prerequisites
 * w3m
