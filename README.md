@@ -27,3 +27,13 @@ an encyclopedia is?
 
 #### Installation Instructions
 `npm install -g cli-worm`
+
+### Usage
+
+`cli-worm [--flags] <filePath>`
+
+### flags
+* `--dumpdumpChapterList`: prints a list of all chapters in the e-pub with each chapter separated by a new line charater and each line containing the chapter title and the path to the chapter within the e-pub separated by commas
+* `--dumpFullText`: dumps the entire text of all chapters in the book to the command line
+
+
