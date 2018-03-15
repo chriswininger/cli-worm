@@ -83,51 +83,106 @@ module.exports = class UI extends EventEmitter {
         return content
     }
 
+    incrementChapter() {
+		if (this.chapterNDX < this.chaptersList.length - 1) {
+			// advance chapter selection
+			this.chapterNDX++
+			if (this.chaptersList[this.chapterNDX].link.indexOf('#') > 0) {
+				// this appears to be a sub-chapter referring to position within same file, skip it
+				return this.incrementChapter()
+			}
+
+			this.chapters.select(this.chapterNDX)
+			this.emit('chapter-select', this.chaptersList[this.chapterNDX])
+		}
+    }
+
+	decrementChapter() {
+		if (this.chapterNDX > 0) {
+			// advance chapter selection
+			this.chapterNDX--
+			if (this.chaptersList[this.chapterNDX].link.indexOf('#') > 0) {
+				// this appears to be a sub-chapter referring to position within same file, skip it
+				return this.decrementChapter()
+			}
+			this.chapters.select(this.chapterNDX)
+			this.emit('chapter-select', this.chaptersList[this.chapterNDX])
+		}
+	}
+
     createEventHandlers(screen, chapters, content) {
+        const isAtBottom = () => {
+            return this.content.getScrollPerc() >= 100 || this.content.height > this.content.getScrollHeight()
+		}
+        const isAtTop = () => {
+            return this.content.getScrollPerc() <= 0 || this.content.height > this.content.getScrollHeight()
+		}
+
+        // exit the application
         screen.key(['escape', 'q', 'C-c'], () => {
             return process.exit(0);
         });
+
+        // switching between chapter selection and content
         screen.key(['tab'], () => {
             screen.focusNext();
         });
-        screen.key(['pagedown'], () => {
-            content.scroll(this.content.height - 2)
-            this.render()
-        })
-        screen.key(['pageup'], () => {
-            content.scroll(0 - this.content.height - 2)
-            this.render()
-        })
 
+        // chapter selection
         chapters.on('select', (event, ndx) => {
-            this.emit('chapter-select', this.chaptersList[ndx])
+            this.chapterNDX = ndx
+            this.emit('chapter-select', this.chaptersList[this.chapterNDX])
         })
 
+        // === content scrolling ===
+		screen.key(['pagedown'], () => {
+			if (!isAtBottom()) {
+				content.scroll(this.content.height - 2)
+				this.render()
+			} else {
+			    this.incrementChapter()
+            }
+		})
+		screen.key(['pageup'], () => {
+			if (!isAtTop()) {
+				content.scroll(0 - this.content.height - 2)
+				this.render()
+			} else {
+			    this.decrementChapter()
+            }
+		})
         content.key('down', ()=> {
-            content.scroll(1);
-            screen.render();
+            if (!isAtBottom()) {
+				content.scroll(1);
+				screen.render();
+			} else  {
+                // advance chapter selection
+               this.incrementChapter()
+            }
         })
-
         content.key('up', ()=> {
-            content.scroll(-1);
-            screen.render();
+            if (!isAtTop()) {
+				content.scroll(-1);
+				screen.render();
+			} else {
+                // go back one chapter
+                this.decrementChapter()
+            }
         })
 
+        // === updating appearance based on active focus content/chapters
         content.on('focus', () => {
             content.style.border.fg = selectedBorderColor
             this.render()
         })
-
         chapters.on('focus', () => {
             chapters.style.border.fg = selectedBorderColor
             this.render()
         })
-
         content.on('blur', () => {
             content.style.border.fg = unSelectedBorderColor
             this.render()
         })
-
         chapters.on('blur', () => {
             chapters.style.border.fg = unSelectedBorderColor
             this.render()
@@ -141,6 +196,7 @@ module.exports = class UI extends EventEmitter {
 
     setContent(text) {
         this.content.setContent(text)
+        this.content.resetScroll()
         this.render()
     }
 
