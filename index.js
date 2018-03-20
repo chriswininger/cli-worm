@@ -20,16 +20,15 @@ createTempDir()
 	.then((tmp) => unzip(filePath, tmp))
 	.then((tmpPath) => {
 		baseLoc = tmpPath
-		return getRootFile(baseLoc + '/META-INF/container.xml')
+		return getRootFile(filePath)
 	})
 	.then((mainFileInfo) => {
 		contentFolder = mainFileInfo.folder
-		return getNCXFile(baseLoc + '/' + mainFileInfo.filePath)
+		return getNCXFile(filePath, mainFileInfo.filePath)
 	})
 	.then(chpFile => {
 		// location is specified relative to the location of the main file (opf) was found
-        const chpListLocation = `${baseLoc}/${contentFolder}/${chpFile}`
-		return getChapters(chpListLocation)
+		return getChapters(filePath, `${contentFolder}/${chpFile}`)
     }).then(chapterList => {
     	if (flags.dumpChapterList) {
 			chapterList.forEach(chp => console.log(`"${chp.text}", "${chp.link}"`))
@@ -39,7 +38,7 @@ createTempDir()
     			if (chp.link.indexOf('#') > 0)
     				return _nextChp() // skip sub-chapters
 
-				renderChapter(`${baseLoc}/${contentFolder}/${chp.link}`)
+				renderChapter(filePath, `${contentFolder}/${chp.link}`)
 					.then(text => {
 						console.log(`=== ${chp.text} ===\n\n${text}`)
 						_nextChp()
@@ -83,7 +82,7 @@ function renderUI(err, chapterList) {
 		_openChapter(chp, 0)
 
 		function _openChapter(chp, tries) {
-			renderChapter(`${baseLoc}/${contentFolder}/${chp.link}`)
+			renderChapter(filePath, `${contentFolder}/${chp.link}`)
 				.then((text) => {
 					ui.setContent(text)
 					ui.content.focus()

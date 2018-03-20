@@ -2,12 +2,41 @@ const fs = require('fs')
 const tmp = require('tmp')
 const unzip = require('unzip')
 const parse = require('xml-parser');
-const { spawn } = require('child_process')
+const { spawn, createChildProcess } = require('child_process')
 const mkdirp = require('mkdirp')
 const path = require('path')
 const { getLogger } = require(__dirname + '/utils.logger.js')
 
 const logger = getLogger('debug')
+
+const _getFileFromEPub = (ePubPath, filePath) => {
+	return new Promise((resolve, reject) => {
+		let found = false
+
+		fs.createReadStream(ePubPath)
+			.pipe(unzip.Parse())
+			.on('entry', function (entry) {
+				if (entry.type === 'File'  && entry.path === filePath) {
+					found = true
+					entry.on('data', data => {
+						resolve(data.toString())
+						entry.autodrain()
+					})
+
+				} else {
+					entry.autodrain()
+				}
+			})
+			.on('close', () => {
+				if (!found)
+					reject('file not found: ' + filePath)
+			})
+			.on('error', err => {
+				if (!found)
+					reject(err)
+			})
+	})
+}
 
 module.exports = {
     createTempDir() {
@@ -22,133 +51,134 @@ module.exports = {
             })
         })
     },
-    getRootFile(metaFile) {
+    getRootFile(ePubPath) {
+    	const _self = this
         return new Promise((resolve, reject) => {
-            fs.readFile(metaFile, 'utf8', (err, xml) => {
-                if (err)
-                    return reject(err)
+        	_getFileFromEPub(ePubPath, 'META-INF/container.xml')
+				.then(xml => {
+					const xmlObj = parse(xml)
+					const filePath = xmlObj.root.children
+						.find(child => child.name === 'rootfiles').children
+						.find(child => child.name === 'rootfile').attributes['full-path']
 
-                const xmlObj = parse(xml)
-                const filePath = xmlObj.root.children
-                    .find(child => child.name === 'rootfiles').children
-                    .find(child => child.name === 'rootfile').attributes['full-path']
-
-                const folder = filePath.split(path.sep)[filePath.split(path.sep).length - 2] || ''
-                logger.debug('resolved root file location (.opf): ' + filePath)
-                logger.debug('resolved root folder name: ' + folder)
-
-                resolve({ folder, filePath })
-            })
+					const folder = filePath.split(path.sep)[filePath.split(path.sep).length - 2] || ''
+					logger.debug('resolved root file location (.opf): ' + filePath)
+					logger.debug('resolved root folder name: ' + folder)
+					resolve({ folder, filePath })
+				})
+				.catch(reject)
         })
     },
-    getNCXFile(rootFilePath) {
-      return new Promise((resolve, reject) => {
-          logger.debug(`reading rootFile: "${rootFilePath}"`)
-          fs.readFile(rootFilePath, 'utf8', (err, xml) => {
-              if (err)
-                  return reject(err)
+    getNCXFile(ePubPath, rootFilePath) {
+    	const _self = this
+		return new Promise((resolve, reject) => {
+			logger.debug(`reading rootFile: "${rootFilePath}"`)
+			const isChapterSpcifier = child => {
+			  const attrs = child.attributes
+			  return child.name === 'item' && attrs['media-type'] === 'application/x-dtbncx+xml'
+			}
 
-              const isChapterSpcifier = child => {
-                  const attrs = child.attributes
-                  return child.name === 'item' && attrs['media-type'] === 'application/x-dtbncx+xml'
-                  /*return child.name === 'item' &&
-                      (attrs.id === 'ncx' || attrs.id === 'toc' || attrs.id === 'ncxtoc')*/
-              }
+			_getFileFromEPub(ePubPath, rootFilePath)
+			  .then(xml => {
+				  const xmlObj = parse(xml)
 
-              const xmlObj = parse(xml)
+				  const manifestObj = xmlObj.root.children.find(child => child.name === 'manifest').children
+				  const refObj = manifestObj.find(isChapterSpcifier)
 
-              const manifestObj = xmlObj.root.children.find(child => child.name === 'manifest').children
-              const refObj = manifestObj.find(isChapterSpcifier)
+				  if (!refObj)
+					  return logger.debug('missing refObj: ' + JSON.stringify(manifestObj, null, 4))
 
-              if (!refObj)
-				  return logger.debug('missing refObj: ' + JSON.stringify(manifestObj, null, 4))
-
-              const ref = refObj.attributes.href
-              resolve(ref)
-          })
-      })
+				  const ref = refObj.attributes.href
+				  resolve(ref)
+			  })
+			  .catch(reject)
+		})
     },
-    getChapters(chpLocation) {
+    getChapters(ePubPath, chpLocation) {
+    	const _self = this
+
+		// === Helpers
+		const paddingForParts = '  '
+
+		// use to strip and directives like !DOCTYPE from our file before we try to parse it as xml
+		const stripDocType = xml => {
+			const location = xml.indexOf('<!DOCTYPE')
+			if (location < 0)
+				return xml
+
+			const endLocation = xml.slice(location).indexOf('>') + location + 1
+			return xml.slice(0, location) + xml.slice(endLocation)
+		}
+
+		const extractChapters = (root, padding) => {
+			if (typeof padding === 'undefined')
+				padding = ''
+
+			let list = []
+
+			root.children.filter(node => node.name === 'navPoint')
+				.forEach(navPoint => {
+					const linkBlock = navPoint.children.find(p => p.name === 'content')
+					list.push({
+						text: padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content,
+						link: linkBlock.attributes.src
+					})
+					// recur back for any nested chapters
+					list = list.concat(extractChapters(navPoint, padding + paddingForParts))
+				})
+
+			return list
+		}
+
         return new Promise((resolve, reject) => {
-            fs.readFile(chpLocation, 'utf8', (err, xml) => {
-                if (err)
-                    return reject(err)
+			_getFileFromEPub(ePubPath, chpLocation)
+				.then(contents => {
+					// cheep hack, remove doctype because xml parser can't handle this
+					const xml = stripDocType(contents)
+					const obj = parse(xml);
 
-				const paddingForParts = '  '
+					if (!obj.root)
+						return reject(`failed to parse xml:\n\n ${xml}`)
 
-                // === Helpers
-
-                // use to strip and directives like !DOCTYPE from our file before we try to parse it as xml
-                const stripDocType = xml => {
-					const location = xml.indexOf('<!DOCTYPE')
-					if (location < 0)
-						return xml
-
-					const endLocation = xml.slice(location).indexOf('>') + location + 1
-					return xml.slice(0, location) + xml.slice(endLocation)
-				}
-
-                const extractChapters = (root, padding) => {
-                    if (typeof padding === 'undefined')
-                        padding = ''
-
-                    let list = []
-
-                    root.children.filter(node => node.name === 'navPoint')
-                        .forEach(navPoint => {
-                            const linkBlock = navPoint.children.find(p => p.name === 'content')
-                            list.push({
-                                text: padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content,
-                                link: linkBlock.attributes.src
-                            })
-                            // recur back for any nested chapters
-                            list = list.concat(extractChapters(navPoint, padding + paddingForParts))
-                        })
-
-                    return list
-                }
-                // ====
-                // cheep hack, for now
-                //const str = '<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">'
-                //xml = xml.replace(str, '')
-                xml = stripDocType(xml)
-                const obj = parse(xml);
-
-                if (!obj.root) {
-                    logger.debug(`failed to parse xml:\n\n ${xml}`)
-                    return process.exit(1)
-                }
-
-                const list = extractChapters(obj.root.children.find(node => node.name === 'navMap'))
-                resolve(list)
-            })
+					const list = extractChapters(obj.root.children.find(node => node.name === 'navMap'))
+					resolve(list)
+				})
+				.catch(reject)
         })
     },
-    renderChapter(chpPath) {
-        const cmd = 'w3m'
+    renderChapter(ePupFilePath, chpPath) {
+    	const _self = this;
         return new Promise((resolve, reject) => {
-            let results = ''
-            const errors = []
+        	// echo "<html><head><title>foo</title></head><body><h3>hello</h3></body></html>" | w3m -T text/html
+			_getFileFromEPub(ePupFilePath, chpPath)
+				.then(chpContents => {
+					const cmd = `echo "${chpContents}" | w3m`
+					logger.debug(cmd)
+					const args = ['-T', 'text/html']
+					let results = ''
+					const errors = []
 
-            logger.debug(`executing w3m command: "${cmd} ${chpPath}"`)
-            const child = spawn(cmd, [chpPath])
+					logger.debug(`executing w3m command: "${cmd} ${args.join(' ')}`)
+					const child = createChildProcess('w3m') //spawn(cmd, args)
+					child.write(chpContents)
+					child.stdout.on('data', data => {
+						results += data
+					})
 
-            child.stdout.on('data', data => {
-                results += data
-            })
+					child.stderr.on('data', err => {
+						errors.push('' + err)
+					})
 
-            child.stderr.on('data', err => {
-                errors.push('' + err)
-            })
-
-            child.on('close', code => {
-                if (code !== 0 || errors.length > 0) {
-                    logger.debug('w3m completed with error code: ' + code + ', and errors:\n\n' + errors.join('\n'))
-                    reject('w3m closed with error:\n\n' + errors.join('\n'))
-                } else {
-                    resolve(results)
-                }
-            })
+					child.on('close', code => {
+						if (code !== 0 || errors.length > 0) {
+							logger.debug('w3m completed with error code: ' + code + ', and errors:\n\n' + errors.join('\n'))
+							reject('w3m closed with error:\n\n' + errors.join('\n'))
+						} else {
+							resolve(results)
+						}
+					})
+				})
+				.catch(reject)
         })
     },
 
