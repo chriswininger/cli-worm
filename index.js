@@ -83,37 +83,11 @@ function renderUI(err, chapterList) {
 
 		function _openChapter(chp, tries) {
 			renderChapter(filePath, `${contentFolder}/${chp.link}`)
-				.then((text) => {
-					ui.setContent(text)
-					ui.content.focus()
-				})
-				.catch(baseErr => {
-					if (tries > 0) {
-						// we already tried to fix this once, just show the error
-						return ui.setContent(`error rendering chapter: ${baseErr}`)
-					}
-
-					// see if this was because our temp dir got removed
-					fs.stat(baseLoc, err => {
-						if (err && err.code === 'ENOENT') {
-							/*
-								looks like our base folder no longer exists, it was a temp dir, perhaps it expired,
-									let's make it again
-							 */
-							createTempDir()
-								.then(tmp => unzip(filePath, tmp))
-								.then((tmpPath) => baseLoc = tmpPath)
-								.then(() => _openChapter(chp, ++tries))
-								.catch(err => {
-									// if even that didn't work give up
-									ui.setContent(`error creating new temp dir: ${err}`)
-								})
-						} else {
-							// give up and just show the error in the content box
-							ui.setContent(`error rendering chapter: ${baseErr}`)
-						}
-					})
-				})
+			  .then(text => {
+                  ui.setContent(text)
+                  ui.content.focus()
+			  })
+			  .catch(err => ui.setContent(`error rendering chapter: ${err}`))
 		}
 	})
 }

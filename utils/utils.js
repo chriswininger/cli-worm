@@ -13,16 +13,21 @@ const _getFileFromEPub = (ePubPath, filePath) => {
 	return new Promise((resolve, reject) => {
 		let found = false
 
+		logger.debug(`looking for file ${filePath}`)
 		fs.createReadStream(ePubPath)
 			.pipe(unzip.Parse())
 			.on('entry', function (entry) {
-				if (entry.type === 'File'  && entry.path === filePath) {
+				if (entry.type === 'File'  && entry.path === filePath.split('#')[0]) {
 					found = true
+					let chp = ''
 					entry.on('data', data => {
-						resolve(data.toString())
-						entry.autodrain()
+						chp += data.toString()
 					})
-
+					entry.on('end', () => {
+                        entry.removeAllListeners()
+                        entry.autodrain()
+                        resolve(chp)
+					})
 				} else {
 					entry.autodrain()
 				}
@@ -115,16 +120,22 @@ module.exports = {
 				padding = ''
 
 			let list = []
-
+			let lastChapter = null
 			root.children.filter(node => node.name === 'navPoint')
 				.forEach(navPoint => {
-					const linkBlock = navPoint.children.find(p => p.name === 'content')
+                    const linkBlock = navPoint.children.find(p => p.name === 'content')
+					const isSubChapter = !lastChapter ||
+					  lastChapter.split('#')[0] !== linkBlock.attributes.src.split('#')[0]
+
 					list.push({
 						text: padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content,
-						link: linkBlock.attributes.src
+						link: linkBlock.attributes.src,
+						isSubChapter
 					})
 					// recur back for any nested chapters
 					list = list.concat(extractChapters(navPoint, padding + paddingForParts))
+
+					lastChapter = linkBlock.attributes.src
 				})
 
 			return list
@@ -152,15 +163,18 @@ module.exports = {
         	// echo "<html><head><title>foo</title></head><body><h3>hello</h3></body></html>" | w3m -T text/html
 			_getFileFromEPub(ePupFilePath, chpPath)
 				.then(chpContents => {
-					const cmd = `echo "${chpContents}" | w3m`
+					const cmd = 'w3m' //`echo "${chpContents}" | w3m`
 					logger.debug(cmd)
 					const args = ['-T', 'text/html']
 					let results = ''
 					const errors = []
 
 					logger.debug(`executing w3m command: "${cmd} ${args.join(' ')}`)
-					const child = createChildProcess('w3m') //spawn(cmd, args)
-					child.write(chpContents)
+					const child = spawn(cmd, args) //spawn(cmd, args)
+					child.stdin.setEncoding('utf-8')
+					child.stdin.write(`${chpContents}\n`)
+					child.stdin.end()
+
 					child.stdout.on('data', data => {
 						results += data
 					})
@@ -170,6 +184,7 @@ module.exports = {
 					})
 
 					child.on('close', code => {
+						child.removeAllListeners()
 						if (code !== 0 || errors.length > 0) {
 							logger.debug('w3m completed with error code: ' + code + ', and errors:\n\n' + errors.join('\n'))
 							reject('w3m closed with error:\n\n' + errors.join('\n'))
