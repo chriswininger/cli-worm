@@ -115,27 +115,35 @@ module.exports = {
 			return xml.slice(0, location) + xml.slice(endLocation)
 		}
 
-		const extractChapters = (root, padding) => {
+		const extractChapters = (root, padding, lastChapter) => {
 			if (typeof padding === 'undefined')
 				padding = ''
 
 			let list = []
-			let lastChapter = null
+			lastChapter = lastChapter || false
+
 			root.children.filter(node => node.name === 'navPoint')
 				.forEach(navPoint => {
                     const linkBlock = navPoint.children.find(p => p.name === 'content')
-					const isSubChapter = !lastChapter ||
-					  lastChapter.split('#')[0] !== linkBlock.attributes.src.split('#')[0]
+					const isSubChapter = lastChapter &&
+					  lastChapter.split('#')[0] === linkBlock.attributes.src.split('#')[0]
 
+					logger.debug(`isSubChapter:
+						${isSubChapter},
+						${padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content},
+						${linkBlock.attributes.src},
+						${lastChapter},
+						${lastChapter && lastChapter.split('#')[0]},
+						${lastChapter && linkBlock.attributes.src.split('#')[0]}`)
 					list.push({
 						text: padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content,
 						link: linkBlock.attributes.src,
 						isSubChapter
 					})
-					// recur back for any nested chapters
-					list = list.concat(extractChapters(navPoint, padding + paddingForParts))
-
 					lastChapter = linkBlock.attributes.src
+
+					// recur back for any nested chapters
+					list = list.concat(extractChapters(navPoint, padding + paddingForParts, lastChapter))
 				})
 
 			return list

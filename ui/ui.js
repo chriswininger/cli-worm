@@ -87,7 +87,7 @@ module.exports = class UI extends EventEmitter {
 		if (this.chapterNDX < this.chaptersList.length - 1) {
 			// advance chapter selection
 			this.chapterNDX++
-			if (this.chaptersList[this.chapterNDX].link.indexOf('#') > 0) {
+			if (this.chaptersList[this.chapterNDX].isSubChapter) {
 				// this appears to be a sub-chapter referring to position within same file, skip it
 				return this.incrementChapter()
 			}
@@ -101,7 +101,7 @@ module.exports = class UI extends EventEmitter {
 		if (this.chapterNDX > 0) {
 			// advance chapter selection
 			this.chapterNDX--
-			if (this.chaptersList[this.chapterNDX].link.indexOf('#') > 0) {
+			if (this.chaptersList[this.chapterNDX].isSubChapter) {
 				// this appears to be a sub-chapter referring to position within same file, skip it
 				return this.decrementChapter()
 			}
