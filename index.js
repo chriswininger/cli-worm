@@ -2,8 +2,8 @@
 
 const { getLogger } = require(__dirname + '/utils/utils.logger.js')
 const { getChapters, renderChapter, getNCXFile, getRootFile } = require('./utils/utils')
+const runCliCommands = require('./ui/runCliCommands')
 const argumentParser = require('./utils/argumentParser')
-const async = require('async')
 const UI = require('./ui/ui')
 
 const logger = getLogger('debug')
@@ -27,48 +27,19 @@ getRootFile(filePath)
     }).then(chapterList => {
     	logger.debug(`chapters: ${JSON.stringify(chapterList, null, 4)}`)
 
-    	if (flags.dumpChapterList) {
-			chapterList.forEach(chp => console.log(`"${chp.text}", "${chp.link}"`))
-			process.exit(0)
-		} else if (flags.dumpFullText) {
-    		async.eachSeries(chapterList, (chp, _nextChp) => {
-    			if (chp.isSubChapter())
-    				return _nextChp() // skip sub-chapters
-
-				renderChapter(filePath, `${contentFolder}/${chp.link}`)
-					.then(text => {
-						console.log(`=== ${chp.text} ===\n\n${text}`)
-						_nextChp()
-					})
-					.catch(err => {
-						_nextChp(err)
-					})
-			}, err => {
-    			if (err) {
-    				console.error(err)
-					process.exit(1)
-				} else {
-    				process.exit(0)
-				}
-			})
-		} else {
-			renderUI(chapterList)
-		}
+		runCliCommands(flags, filePath, chapterList, contentFolder, (err, handled) => {
+			if (err) {
+				console.error(err)
+				process.exit(1)
+			} else if (handled) {
+				process.exit(0)
+			} else {
+				const ui = new UI(filePath, chapterList, contentFolder)
+				ui.on('close', () => process.exit(0))
+			}
+		})
 	})
 	.catch(err => {
 		console.error(err)
 		process.exit(1)
 	})
-
-function renderUI(chapterList) {
-	const ui = new UI()
-	ui.setChapters(chapterList)
-	ui.on('chapter-select', (chp) => {
-		renderChapter(filePath, `${contentFolder}/${chp.link}`)
-			.then(text => {
-				ui.setContent(text)
-				ui.content.focus()
-			})
-			.catch(err => ui.setContent(`error rendering chapter: ${err}`))
-	})
-}

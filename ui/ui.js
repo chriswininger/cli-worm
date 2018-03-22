@@ -1,20 +1,25 @@
 const blessed = require('blessed')
-const EventEmitter = require('events');
-const { getLogger } = require(__dirname + '/../utils/utils.logger.js')
+const EventEmitter = require('events')
+const { renderChapter } = require(__dirname + '/../utils/utils.js')
+const { getLogger } =     require(__dirname + '/../utils/utils.logger.js')
 
-const logger = getLogger('debug')
 const selectedBorderColor = '#008000'
 const unSelectedBorderColor = '#f0f0f0'
 
 module.exports = class UI extends EventEmitter {
-    constructor() {
+    constructor(filePath, chapterList, contentFolder) {
         super()
         this.screen = this.createScreenDisplay()
         this.chapters = this.createChaptersDisplay()
         this.content = this.createContentDisplay()
+		this.filePath = filePath
+		this.contentFolder = contentFolder
         this.createEventHandlers(this.screen, this.chapters, this.content);
         this.screen.append(this.chapters);
         this.screen.append(this.content);
+
+		this.setChapters(chapterList)
+
         this.chapters.focus();
         this.render()
     }
@@ -120,7 +125,7 @@ module.exports = class UI extends EventEmitter {
 
         // exit the application
         screen.key(['escape', 'q', 'C-c'], () => {
-            return process.exit(0);
+            this.emit('close')
         });
 
         // switching between chapter selection and content
@@ -133,6 +138,15 @@ module.exports = class UI extends EventEmitter {
             this.chapterNDX = ndx
             this.emit('chapter-select', this.chaptersList[this.chapterNDX])
         })
+
+		this.on('chapter-select', (chp) => {
+			renderChapter(this.filePath, `${this.contentFolder}/${chp.link}`)
+				.then(text => {
+					this.setContent(text)
+					this.content.focus()
+				})
+				.catch(err => this.setContent(`error rendering chapter: ${err}`))
+		})
 
         // === content scrolling ===
 		screen.key(['pagedown'], () => {
