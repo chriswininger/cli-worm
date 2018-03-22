@@ -27,13 +27,17 @@ getRootFile(filePath)
     }).then(chapterList => {
     	logger.debug(`chapters: ${JSON.stringify(chapterList, null, 4)}`)
 
+		// check the flags and execute any cli commands that may be specified by the flags
 		runCliCommands(flags, filePath, chapterList, contentFolder, (err, handled) => {
 			if (err) {
+				// we specified a command but could not fulfill it
 				console.error(err)
 				process.exit(1)
 			} else if (handled) {
+				// we specified and handled a cli command nothing else to do
 				process.exit(0)
 			} else {
+				// we are not performing a cli command, launch the ncurses interface
 				const ui = new UI(filePath, chapterList, contentFolder)
 				ui.on('close', () => process.exit(0))
 			}
