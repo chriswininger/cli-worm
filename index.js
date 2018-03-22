@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { getLogger } = require(__dirname + '/utils/utils.logger.js')
-const { createTempDir, unzip, getChapters, renderChapter, getNCXFile, getRootFile } = require('./utils/utils')
+const { getChapters, renderChapter, getNCXFile, getRootFile } = require('./utils/utils')
 const argumentParser = require('./utils/argumentParser')
 const async = require('async')
 const UI = require('./ui/ui')
@@ -14,15 +14,9 @@ if (!filePath) {
 	return process.exit(1)
 }
 
-let baseLoc = null
 let contentFolder = null
 
-createTempDir()
-	.then((tmp) => unzip(filePath, tmp))
-	.then((tmpPath) => {
-		baseLoc = tmpPath
-		return getRootFile(filePath)
-	})
+getRootFile(filePath)
 	.then((mainFileInfo) => {
 		contentFolder = mainFileInfo.folder
 		return getNCXFile(filePath, mainFileInfo.filePath)

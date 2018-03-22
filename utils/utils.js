@@ -1,65 +1,49 @@
 const fs = require('fs')
-const tmp = require('tmp')
 const unzip = require('unzip')
 const parse = require('xml-parser');
-const { spawn, createChildProcess } = require('child_process')
-const mkdirp = require('mkdirp')
+const { spawn } = require('child_process')
 const path = require('path')
 const { getLogger } = require(__dirname + '/utils.logger.js')
 
 const logger = getLogger('debug')
+const Utils = {}
+module.exports = Object.assign(Utils, {
+	getFileFromEPub(ePubPath, filePath) {
+		return new Promise((resolve, reject) => {
+			let found = false
 
-const _getFileFromEPub = (ePubPath, filePath) => {
-	return new Promise((resolve, reject) => {
-		let found = false
-
-		logger.debug(`looking for file ${filePath}`)
-		fs.createReadStream(ePubPath)
-			.pipe(unzip.Parse())
-			.on('entry', function (entry) {
-				if (entry.type === 'File'  && entry.path === filePath.split('#')[0]) {
-					found = true
-					let chp = ''
-					entry.on('data', data => {
-						chp += data.toString()
-					})
-					entry.on('end', () => {
-                        entry.removeAllListeners()
-                        entry.autodrain()
-                        resolve(chp)
-					})
-				} else {
-					entry.autodrain()
-				}
-			})
-			.on('close', () => {
-				if (!found)
-					reject('file not found: ' + filePath)
-			})
-			.on('error', err => {
-				if (!found)
-					reject(err)
-			})
-	})
-}
-
-module.exports = {
-    createTempDir() {
-        return new Promise((resolve, reject) => {
-            tmp.dir({ unsafeCleanup: true, prefix: 'current_' }, (err, path) => {
-                if (err) {
-					reject(err)
-				} else {
-					logger.debug('created temp folder: ' + path)
-                    resolve(path)
-				}
-            })
-        })
-    },
+			logger.debug(`looking for file ${filePath}`)
+			fs.createReadStream(ePubPath)
+				.pipe(unzip.Parse())
+				.on('entry', function (entry) {
+					if (entry.type === 'File'  && entry.path === filePath.split('#')[0]) {
+						found = true
+						let chp = ''
+						entry.on('data', data => {
+							chp += data.toString()
+						})
+						entry.on('end', () => {
+							entry.removeAllListeners()
+							entry.autodrain()
+							resolve(chp)
+						})
+					} else {
+						entry.autodrain()
+					}
+				})
+				.on('close', () => {
+					if (!found)
+						reject('file not found: ' + filePath)
+				})
+				.on('error', err => {
+					if (!found)
+						reject(err)
+				})
+		})
+	},
     getRootFile(ePubPath) {
-    	const _self = this
         return new Promise((resolve, reject) => {
-        	_getFileFromEPub(ePubPath, 'META-INF/container.xml')
+        	Utils.getFileFromEPub(ePubPath, 'META-INF/container.xml')
 				.then(xml => {
 					const xmlObj = parse(xml)
 					const filePath = xmlObj.root.children
@@ -75,7 +59,6 @@ module.exports = {
         })
     },
     getNCXFile(ePubPath, rootFilePath) {
-    	const _self = this
 		return new Promise((resolve, reject) => {
 			logger.debug(`reading rootFile: "${rootFilePath}"`)
 			const isChapterSpcifier = child => {
@@ -83,7 +66,7 @@ module.exports = {
 			  return child.name === 'item' && attrs['media-type'] === 'application/x-dtbncx+xml'
 			}
 
-			_getFileFromEPub(ePubPath, rootFilePath)
+			Utils.getFileFromEPub(ePubPath, rootFilePath)
 			  .then(xml => {
 				  const xmlObj = parse(xml)
 
@@ -100,8 +83,6 @@ module.exports = {
 		})
     },
     getChapters(ePubPath, chpLocation) {
-    	const _self = this
-
 		// === Helpers
 		const paddingForParts = '  '
 
@@ -150,7 +131,7 @@ module.exports = {
 		}
 
         return new Promise((resolve, reject) => {
-			_getFileFromEPub(ePubPath, chpLocation)
+			Utils.getFileFromEPub(ePubPath, chpLocation)
 				.then(contents => {
 					// cheep hack, remove doctype because xml parser can't handle this
 					const xml = stripDocType(contents)
@@ -166,10 +147,9 @@ module.exports = {
         })
     },
     renderChapter(ePupFilePath, chpPath) {
-    	const _self = this;
         return new Promise((resolve, reject) => {
         	// echo "<html><head><title>foo</title></head><body><h3>hello</h3></body></html>" | w3m -T text/html
-			_getFileFromEPub(ePupFilePath, chpPath)
+			Utils.getFileFromEPub(ePupFilePath, chpPath)
 				.then(chpContents => {
 					const cmd = 'w3m' //`echo "${chpContents}" | w3m`
 					logger.debug(cmd)
@@ -203,65 +183,5 @@ module.exports = {
 				})
 				.catch(reject)
         })
-    },
-
-    unzip(zipFilePath, outPath) {
-		return new Promise((resolve, reject) => {
-			logger.debug('extracting e-book: ' + zipFilePath)
-			let terminatedEarly = false
-
-			fs.createReadStream(zipFilePath).pipe(unzip.Parse())
-				.on('entry', (entry) => {
-					if (terminatedEarly) {
-						// we already rejected the promise, just skip the reset
-						return entry.autodrain()
-					}
-
-					logger.debug(`examining => path: "${entry.path}" , type: "${entry.type}"`)
-					if (entry.type === 'File' && entry.path[entry.path.length - 1] === path.sep) {
-						/*
-						   Filter to work around issue, some epub files contain a file entry
-							   for the META-INF folder specified with the type file, when you use extract
-							   from the unzip library it naively creates a file then blows up when it tries to
-							   extract files into it
-						*/
-						const newDir = outPath + '/' + entry.path
-						logger.debug(`discovered folder in zip marked file, creating folder instead => "${newDir}"`)
-						mkdirp(newDir, err => {
-							if (err) {
-								terminatedEarly = true
-								reject('error creating directory: ' + outPath + entry.path)
-							} else {
-								logger.debug(`created directory: "${newDir}"`)
-							}
-
-							entry.autodrain()
-						})
-					} else {
-						const newFilePath = outPath + '/' + entry.path
-						mkdirp(path.dirname(newFilePath), err => {
-							if (err) {
-								terminatedEarly = true
-								entry.autodrain()
-								reject('error creating folder: ' + path.dirname(newFilePath))
-							} else {
-								logger.debug(`try to write => path: "${newFilePath}" , type: "${entry.type}"`)
-								entry.pipe(fs.createWriteStream(newFilePath))
-							}
-						})
-					}
-				})
-				.on('error', err => {
-					logger.debug(`error extracting files: "${err}"`)
-					terminatedEarly = true
-					reject(err)
-				})
-                .on('close', () => {
-                    logger.debug('finished extracting e-book: ' + zipFilePath)
-
-					// include to the outPath we were passed to thread along the promise chain
-					resolve(outPath)
-                })
-		})
     }
-}
+})
