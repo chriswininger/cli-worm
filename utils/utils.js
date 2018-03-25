@@ -16,7 +16,11 @@ module.exports = Object.assign(Utils, {
 			fs.createReadStream(ePubPath)
 				.pipe(unzip.Parse())
 				.on('entry', function (entry) {
-					if (entry.type === 'File'  && entry.path === filePath.split('#')[0]) {
+					// normalize for opening /
+					const entryPath = entry.path[0] === '/' ? entry.path.slice(1) : entry.path
+					filePath = filePath[0] === '/' ? filePath.slice(1) : filePath
+
+					if (entry.type === 'File'  && entryPath === filePath.split('#')[0]) {
 						found = true
 						let chp = ''
 						entry.on('data', data => {
@@ -28,6 +32,7 @@ module.exports = Object.assign(Utils, {
 							resolve(chp)
 						})
 					} else {
+						logger.debug(`passing over ${entry.path}`)
 						entry.autodrain()
 					}
 				})
