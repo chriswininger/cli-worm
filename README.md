@@ -4,13 +4,11 @@ A simple CLI epub reader
 
 #### Description
 
-* Do you want to read an epubs, but you're too lazy to move your hand from your keyboard to
-your mouse?
+* Do you want to read an epub file, but you're too lazy to move your hand from the keyboard to the mouse?
 
 * Do you miss the good old days of reading the encyclopedia via an ncurses application?
 
-* Do you know what
-an encyclopedia is?
+* Do you know what an encyclopedia is?
 
   **Then this app is for you!**
 
