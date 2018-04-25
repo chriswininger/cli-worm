@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 const { getLogger } = require(__dirname + '/utils/utils.logger.js')
-const { getChapters, renderChapter, getNCXFile, getRootFile } = require('./utils/utils')
+const { getChapters, renderChapter, getNCXFile, getRootFile, getTitle } = require('./utils/utils')
+const { getDBForMetaContent } = require('./utils/utils.meta.js')
 const runCliCommands = require('./ui/runCliCommands')
 const argumentParser = require('./utils/argumentParser')
 const UI = require('./ui/ui')
@@ -22,13 +23,22 @@ getRootFile(filePath)
 		return getNCXFile(filePath, mainFileInfo.filePath)
 	})
 	.then(chpFile => {
-		// location is specified relative to the location of the main file (opf) was found
-		return getChapters(filePath, `${contentFolder}/${chpFile}`)
-    }).then(chapterList => {
+		return new Promise(async (resolve, reject) => {
+			try {
+				// location is specified relative to the location of the main file (opf) was found
+				const chapterList = await getChapters(filePath, `${contentFolder}/${chpFile}`)
+				const title = await getTitle(filePath, `${contentFolder}/${chpFile}`)
+				resolve({ chapterList, title})
+			} catch (ex) {
+				reject(ex)
+			}
+		})
+
+	}).then(({chapterList, title}) => {
     	logger.debug(`chapters: ${JSON.stringify(chapterList, null, 4)}`)
 
 		// check the flags and execute any cli commands that may be specified by the flags
-		runCliCommands(flags, filePath, chapterList, contentFolder, (err, handled) => {
+		runCliCommands(flags, filePath, chapterList, contentFolder, async (err, handled) => {
 			if (err) {
 				// we specified a command but could not fulfill it
 				console.error(err)
@@ -38,7 +48,16 @@ getRootFile(filePath)
 				process.exit(0)
 			} else {
 				// we are not performing a cli command, launch the ncurses interface
-				const ui = new UI(filePath, chapterList, contentFolder)
+				let db = null
+				try {
+					db = await getDBForMetaContent()
+				} catch(ex) {
+					console.error(ex)
+					return process.exit(1)
+				}
+
+				logger.debug('got db? ' + db)
+				const ui = new UI(title, filePath, chapterList, contentFolder, db)
 				ui.on('close', () => process.exit(0))
 			}
 		})

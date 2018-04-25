@@ -1,19 +1,28 @@
 const blessed = require('blessed')
 const EventEmitter = require('events')
+const crypto = require('crypto')
+const path = require('path')
 const { renderChapter } = require(__dirname + '/../utils/utils.js')
-const { getLogger } =     require(__dirname + '/../utils/utils.logger.js')
+const logger = require(__dirname + '/../utils/utils.logger.js').getLogger('debug')
 
 const selectedBorderColor = '#008000'
 const unSelectedBorderColor = '#f0f0f0'
 
 module.exports = class UI extends EventEmitter {
-    constructor(filePath, chapterList, contentFolder) {
+    constructor(title, filePath, chapterList, contentFolder, db) {
         super()
+		this.title = title
         this.screen = this.createScreenDisplay()
+		this.fileName = path.basename(filePath)
+
+		// a hash generated as a combo of the file name and title extracted from file to serve as a unique marker
+		this.uniqueTitleHash = crypto.createHash('md5').update(title + filePath).digest("hex");
+
         this.chapters = this.createChaptersDisplay()
         this.content = this.createContentDisplay()
 		this.filePath = filePath
 		this.contentFolder = contentFolder
+		this.db = db
         this.createEventHandlers(this.screen, this.chapters, this.content);
         this.screen.append(this.chapters);
         this.screen.append(this.content);
@@ -21,7 +30,18 @@ module.exports = class UI extends EventEmitter {
 		this.setChapters(chapterList)
 
         this.chapters.focus();
-        this.render()
+		this.render()
+
+		logger.debug('check for existing last positions')
+		this.getCurrentChapter()
+			.then(pos => {
+				if (pos) {
+					logger.debug('selecting chapter based on last reading session: ' + pos.chapter_index)
+					this.selectChapter(pos.chapter_index)
+					this.render()
+				}
+			})
+			.catch(ex => logger.debug('error getting last reading position: ' + ex))
     }
 
     createScreenDisplay() {
@@ -29,7 +49,7 @@ module.exports = class UI extends EventEmitter {
             smartCSR: true
         });
 
-        screen.title = 'cli-book-worm'
+        screen.title = 'cli-book-worm -- ' + this.title
 
         return screen
     }
@@ -88,30 +108,38 @@ module.exports = class UI extends EventEmitter {
         return content
     }
 
+    selectChapter(ndx) {
+    	if (ndx >= this.chaptersList.length || ndx < 0)
+    		return logger.debug('preventing chapter from being set to a value outside of bounds')
+
+    	this.chapterNDX = ndx
+		this.chapters.select(ndx)
+		this.emit('chapter-select', this.chaptersList[ndx])
+	}
+
     incrementChapter() {
 		if (this.chapterNDX < this.chaptersList.length - 1) {
 			// advance chapter selection
-			this.chapterNDX++
-			if (this.chaptersList[this.chapterNDX].isSubChapter) {
+			if (this.chaptersList[this.chapterNDX + 1].isSubChapter) {
 				// this appears to be a sub-chapter referring to position within same file, skip it
+				this.chapterNDX++
 				return this.incrementChapter()
 			}
 
-			this.chapters.select(this.chapterNDX)
-			this.emit('chapter-select', this.chaptersList[this.chapterNDX])
+			this.selectChapter(this.chapterNDX + 1)
 		}
     }
 
 	decrementChapter() {
 		if (this.chapterNDX > 0) {
 			// advance chapter selection
-			this.chapterNDX--
-			if (this.chaptersList[this.chapterNDX].isSubChapter) {
+			if (this.chaptersList[this.chapterNDX - 1].isSubChapter) {
 				// this appears to be a sub-chapter referring to position within same file, skip it
+				this.chapterNDX--
 				return this.decrementChapter()
 			}
-			this.chapters.select(this.chapterNDX)
-			this.emit('chapter-select', this.chaptersList[this.chapterNDX])
+
+			this.selectChapter(this.chapterNDX - 1)
 		}
 	}
 
@@ -135,8 +163,7 @@ module.exports = class UI extends EventEmitter {
 
         // chapter selection
         chapters.on('select', (event, ndx) => {
-            this.chapterNDX = ndx
-            this.emit('chapter-select', this.chaptersList[this.chapterNDX])
+        	this.selectChapter(ndx)
         })
 
 		this.on('chapter-select', (chp) => {
@@ -144,6 +171,7 @@ module.exports = class UI extends EventEmitter {
 				.then(text => {
 					this.setContent(text)
 					this.content.focus()
+					this.updateCurrentChapter()
 				})
 				.catch(err => this.setContent(`error rendering chapter: ${err}`))
 		})
@@ -217,4 +245,26 @@ module.exports = class UI extends EventEmitter {
     render() {
         this.screen.render()
     }
+
+    getCurrentChapter() {
+    	return new Promise(async (resolve, reject) => {
+    		try {
+				const results = await this.db.get(`
+    				SELECT * FROM current_positions
+    				WHERE book_unique_title_hash = '${this.uniqueTitleHash}'
+    			`)
+				resolve(results)
+			} catch (ex) {
+    			reject(ex)
+			}
+		})
+	}
+    updateCurrentChapter() {
+		this.db.get(`
+			REPLACE INTO current_positions
+				(book_unique_title_hash, book_title, book_path, chapter_index, chapter_position)
+				VALUES
+				('${this.uniqueTitleHash}', '${this.title}', '${ this.filePath }', '${this.chapterNDX}', null)
+		`).catch(err => this.setContent(`error updating position: ${err}`))
+	}
 }
