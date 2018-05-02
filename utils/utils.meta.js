@@ -28,7 +28,8 @@ module.exports = {
 						book_title TEXT,
 						book_path TEXT,
 						chapter_index INTEGER,
-						chapter_position TEXT
+						chapter_position TEXT,
+						last_updated
 					);`)
 				logger.debug('created db: ' + db)
 				resolve(db)

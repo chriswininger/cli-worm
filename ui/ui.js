@@ -262,9 +262,9 @@ module.exports = class UI extends EventEmitter {
     updateCurrentChapter() {
 		this.db.get(`
 			REPLACE INTO current_positions
-				(book_unique_title_hash, book_title, book_path, chapter_index, chapter_position)
+				(book_unique_title_hash, book_title, book_path, chapter_index, chapter_position, last_updated)
 				VALUES
-				('${this.uniqueTitleHash}', '${this.title}', '${ this.filePath }', '${this.chapterNDX}', null)
+				('${this.uniqueTitleHash}', '${this.title}', '${ this.filePath }', '${this.chapterNDX}', null, ${Date.now()})
 		`).catch(err => this.setContent(`error updating position: ${err}`))
 	}
 }

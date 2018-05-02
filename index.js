@@ -56,7 +56,6 @@ getRootFile(filePath)
 					return process.exit(1)
 				}
 
-				logger.debug('got db? ' + db)
 				const ui = new UI(title, filePath, chapterList, contentFolder, db)
 				ui.on('close', () => process.exit(0))
 			}
