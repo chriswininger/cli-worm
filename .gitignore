@@ -6,3 +6,4 @@ mimetype
 *.log
 .snapcraft
 tests/*
+*.sqlite
