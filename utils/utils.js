@@ -22,6 +22,8 @@ module.exports = Object.assign(Utils, {
 
 					if (entry.type === 'File'  && entryPath === filePath.split('#')[0]) {
 						found = true
+						logger.debug('found file ' + filePath + ' begging gathering contents')
+
 						let chp = ''
 						entry.on('data', data => {
 							chp += data.toString()
@@ -29,16 +31,26 @@ module.exports = Object.assign(Utils, {
 						entry.on('end', () => {
 							entry.removeAllListeners()
 							entry.autodrain()
+							logger.debug('done gathering contents of ' + filePath)
 							resolve(chp)
 						})
+						entry.on('error', err => {
+							logger.debug('failed to get contents for ' + filePath + ': ' + err)
+							entry.autodrain()
+							reject(err)
+						})
 					} else {
-						logger.debug(`passing over ${entry.path}`)
+						logger.debug(`passing over ${entryPath} while searching for ${filePath}`)
 						entry.autodrain()
 					}
 				})
 				.on('close', () => {
-					if (!found)
+					if (!found) {
+						logger.debug('could not find: ' + filePath)
 						reject('file not found: ' + filePath)
+					} else {
+						logger.debug('finished processing and found file')
+					}
 				})
 				.on('error', err => {
 					if (!found)
@@ -47,6 +59,7 @@ module.exports = Object.assign(Utils, {
 		})
 	},
     getRootFile(ePubPath) {
+		logger.debug(`getRootFile: ${ePubPath}`)
         return new Promise((resolve, reject) => {
         	Utils.getFileFromEPub(ePubPath, 'META-INF/container.xml')
 				.then(xml => {
@@ -64,6 +77,7 @@ module.exports = Object.assign(Utils, {
         })
     },
     getNCXFile(ePubPath, rootFilePath) {
+		logger.debug(`getNCXFile: ${ePubPath}, ${rootFilePath}`)
 		return new Promise((resolve, reject) => {
 			logger.debug(`reading rootFile: "${rootFilePath}"`)
 			const isChapterSpcifier = child => {
@@ -88,18 +102,10 @@ module.exports = Object.assign(Utils, {
 		})
     },
     getChapters(ePubPath, chpLocation) {
+		logger.debug(`getChapters: ${ePubPath}, ${chpLocation}`)
+
 		// === Helpers
 		const paddingForParts = '  '
-
-		// use to strip and directives like !DOCTYPE from our file before we try to parse it as xml
-		const stripDocType = xml => {
-			const location = xml.indexOf('<!DOCTYPE')
-			if (location < 0)
-				return xml
-
-			const endLocation = xml.slice(location).indexOf('>') + location + 1
-			return xml.slice(0, location) + xml.slice(endLocation)
-		}
 
 		const extractChapters = (root, padding, lastChapter) => {
 			if (typeof padding === 'undefined')
@@ -139,7 +145,7 @@ module.exports = Object.assign(Utils, {
 			Utils.getFileFromEPub(ePubPath, chpLocation)
 				.then(contents => {
 					// cheep hack, remove doctype because xml parser can't handle this
-					const xml = stripDocType(contents)
+					const xml = Utils.stripDocType(contents)
 					const obj = parse(xml);
 
 					if (!obj.root)
@@ -151,7 +157,34 @@ module.exports = Object.assign(Utils, {
 				.catch(reject)
         })
     },
+	getTitle(ePubPath, chpLocation) {
+		logger.debug(`getTitle: ${ePubPath}, ${chpLocation}`)
+		return new Promise(async (resolve, reject) => {
+			try {
+				const content = await Utils.getFileFromEPub(ePubPath, chpLocation)
+				const xml = Utils.stripDocType(content)
+				const obj = parse(xml)
+
+				if (!obj.root)
+					return reject(`failed to parse xml:\n\n ${xml}`)
+
+				const titleNode = obj.root.children.find(node => node.name === 'docTitle')
+				if (!titleNode)
+					return resolve(null)
+
+				const textNode = titleNode.children.find(node => node.name === 'text')
+
+				if (!textNode)
+					return resolve(null)
+
+				resolve(textNode.content)
+			} catch(ex) {
+				reject(ex)
+			}
+		})
+	},
     renderChapter(ePupFilePath, chpPath) {
+		logger.debug(`renderChapter: ${ePupFilePath}, ${chpPath}`)
         return new Promise((resolve, reject) => {
         	// echo "<html><head><title>foo</title></head><body><h3>hello</h3></body></html>" | w3m -T text/html
 			Utils.getFileFromEPub(ePupFilePath, chpPath)
@@ -188,5 +221,15 @@ module.exports = Object.assign(Utils, {
 				})
 				.catch(reject)
         })
-    }
+    },
+
+	// use to strip and directives like !DOCTYPE from our file before we try to parse it as xml
+	stripDocType(xml) {
+		const location = xml.indexOf('<!DOCTYPE')
+		if (location < 0)
+			return xml
+
+		const endLocation = xml.slice(location).indexOf('>') + location + 1
+		return xml.slice(0, location) + xml.slice(endLocation)
+	}
 })

@@ -11,7 +11,6 @@ module.exports = {
         const logger = getLogger(level);
         logger.level = process.env.Level || 'OFF';
 
-        logger.debug('!!! grr: ' + process.env.Level)
         return logger
     }
 }
