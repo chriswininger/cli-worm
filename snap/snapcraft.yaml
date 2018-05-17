@@ -15,5 +15,6 @@ parts:
     # See 'snapcraft plugins'
     source: .
     plugin: nodejs
+    node-engine: '8.11.1'
     stage-packages:
       - w3m
