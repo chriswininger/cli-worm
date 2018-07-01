@@ -14,9 +14,11 @@
     "epub",
     "e-reader",
     "ebooks",
-    "cli"
+    "cli",
+    "worm",
+    "cli-worm"
   ],
-  "author": "",
+  "author": "Chris Wininger",
   "license": "MIT",
   "dependencies": {
     "async": "^2.6.0",
