@@ -10,7 +10,7 @@ module.exports = (flags, filePath, chapterList, contentFolder, complete) => {
 		complete(null, true)
 	} else if (flags.dumpFullText) {
 		async.eachSeries(chapterList, (chp, _nextChp) => {
-			if (chp.isSubChapter())
+			if (chp.isSubChapter)
 				return _nextChp() // skip sub-chapters
 
 			renderChapter(filePath, `${contentFolder}/${chp.link}`)
