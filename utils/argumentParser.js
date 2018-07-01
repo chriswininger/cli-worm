@@ -2,7 +2,7 @@ module.exports = (args) => {
 	const flags = {}
 	let filePath = null
 
-	if (args.length === 3) {
+	if (args.length === 3 && args[2][0] !== '-') {
 		// nothing but the filePath given
 		return { filePath: args[2], flags }
 	}

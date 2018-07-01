@@ -5,10 +5,16 @@ const { getChapters, renderChapter, getNCXFile, getRootFile, getTitle } = requir
 const { getDBForMetaContent } = require('./utils/utils.meta.js')
 const runCliCommands = require('./ui/runCliCommands')
 const argumentParser = require('./utils/argumentParser')
+const showHelp = require('./utils/utils.showhelp')
 const UI = require('./ui/ui')
 
 const logger = getLogger('debug')
 const { filePath, flags } = argumentParser(process.argv)
+
+if (flags.help) {
+	showHelp()
+	process.exit(0)
+}
 
 if (!filePath) {
 	console.warn('please specify a file path')
