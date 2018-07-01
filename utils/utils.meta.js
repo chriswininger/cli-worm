@@ -1,8 +1,10 @@
 const sqlite = require('sqlite')
 const fs = require('fs')
 const logger = require(__dirname + '/utils.logger.js').getLogger('debug')
+const path = require('path')
 
-const dbFilePath = __dirname + '/data.sqlite'
+const dbRootFilePath = process.env.SNAP_USER_DATA || __dirname
+const dbFilePath = path.join(dbRootFilePath, 'data.sqlite')
 
 module.exports = {
 	getDBForMetaContent() {
