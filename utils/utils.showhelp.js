@@ -1,5 +1,7 @@
+const {version} = require(__dirname + '/../package.json')
+
 const info = [
-    'cli-worm 0.0.6, a simple ncurses e-pub reader.',
+    `cli-worm ${version}, a simple ncurses e-pub reader.`,
     'Usage: cli-worm [OPTION]... [epub file]...',
     '',
     'Standard Mode:',
