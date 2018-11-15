@@ -7,3 +7,7 @@ mimetype
 .snapcraft
 tests/*
 *.sqlite
+*.kate-swp
+personalNotes/*
+*.snap
+*.tar.bz2

@@ -1,10 +1,10 @@
 name:  cli-worm # you probably want to 'snapcraft register <name>'
-version: '0.01.00'
+version: '0.01.01'
 summary:  an epub reader for the command line # 79 char long summary
 description: |
   A simple command line ncurses style interface for reading epubs
 
-grade: devel # must be 'stable' to release into candidate/stable channels
+grade: stable # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
 apps:
   cli-worm:

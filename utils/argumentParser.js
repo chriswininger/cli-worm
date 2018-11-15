@@ -12,9 +12,13 @@ module.exports = (args) => {
 		if (argVal[0] === '-' && argVal[1] === '-') {
 			// found flag
 			flags[argVal.slice(2)] = true
+    } else if (argVal[0] === '-' && argVal[1] === 'h') {
+      flags.help = true
+    } else if (argVal[0] === '-' && argVal[1] === 'v') {
+      flags.version = true
 		} else if (ndx === args.length - 1) {
-			// lost position and not a flag so this is our filePath
-			filePath = argVal
+      // lost position and not a flag so this is our filePath
+      filePath = argVal
 		} else {
 			// hmm something we don't understand
 		}

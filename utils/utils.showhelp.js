@@ -20,7 +20,8 @@ const info = [
     '',
     '--dumpChapterList:   dump the chapter list to standard out',
     '--dumpFullText:      dump the complete contents of the book to standard out',
-    '--help               keep calm and don\'t panic',
+    "--version, -v:       display the version you are using. What you don't know already?!",
+    '--help, -h"          keep calm and don\'t panic',
 ].join('\n')
 
 module.exports = function showHelp() {

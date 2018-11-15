@@ -7,6 +7,17 @@ const { getLogger } = require(__dirname + '/utils.logger.js')
 
 const logger = getLogger('debug')
 const Utils = {}
+
+const nodeMatch = (node, val) => {
+  if (node.name && node.name.indexOf(':') > 0) {
+    if (node.name.split(':')[node.name.split(":").length - 1] === val) {
+      return true
+    }
+  }
+
+  return node.name === val
+}
+
 module.exports = Object.assign(Utils, {
 	getFileFromEPub(ePubPath, filePath) {
 		return new Promise((resolve, reject) => {
@@ -87,7 +98,8 @@ module.exports = Object.assign(Utils, {
 
 			Utils.getFileFromEPub(ePubPath, rootFilePath)
 			  .then(xml => {
-				  const xmlObj = parse(xml)
+				  xml = Utils.stripDocType(xml)
+					const xmlObj = parse(xml)
 
 				  const manifestObj = xmlObj.root.children.find(child => child.name === 'manifest').children
 				  const refObj = manifestObj.find(isChapterSpcifier)
@@ -114,21 +126,21 @@ module.exports = Object.assign(Utils, {
 			let list = []
 			lastChapter = lastChapter || false
 
-			root.children.filter(node => node.name === 'navPoint')
+			root.children.filter(node => nodeMatch(node, 'navPoint'))
 				.forEach(navPoint => {
-                    const linkBlock = navPoint.children.find(p => p.name === 'content')
+					const linkBlock = navPoint.children.find(p => nodeMatch(p, 'content'))
 					const isSubChapter = lastChapter &&
 					  lastChapter.split('#')[0] === linkBlock.attributes.src.split('#')[0]
 
 					logger.debug(`isSubChapter:
 						${isSubChapter},
-						${padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content},
+						${padding + navPoint.children.find(p => nodeMatch(p, 'navLabel')).children.find(p => nodeMatch(p, 'text')).content},
 						${linkBlock.attributes.src},
 						${lastChapter},
 						${lastChapter && lastChapter.split('#')[0]},
 						${lastChapter && linkBlock.attributes.src.split('#')[0]}`)
 					list.push({
-						text: padding + navPoint.children.find(p => p.name === 'navLabel').children.find(p => p.name === 'text').content,
+						text: padding + navPoint.children.find(p => nodeMatch(p, 'navLabel')).children.find(p => nodeMatch(p, 'text')).content,
 						link: linkBlock.attributes.src,
 						isSubChapter
 					})
@@ -151,7 +163,7 @@ module.exports = Object.assign(Utils, {
 					if (!obj.root)
 						return reject(`failed to parse xml:\n\n ${xml}`)
 
-					const list = extractChapters(obj.root.children.find(node => node.name === 'navMap'))
+					const list = extractChapters(obj.root.children.find(node => nodeMatch(node, 'navMap')))
 					resolve(list)
 				})
 				.catch(reject)

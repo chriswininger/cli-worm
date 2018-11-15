@@ -1,6 +1,6 @@
 {
   "name": "cli-worm",
-  "version": "0.01.00",
+  "version": "0.01.01",
   "description": "an epub reader for the command line",
   "main": "index.js",
   "bin": {

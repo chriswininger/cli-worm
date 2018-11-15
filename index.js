@@ -16,6 +16,11 @@ if (flags.help) {
 	process.exit(0)
 }
 
+if (flags.version || flags.Version) {
+  console.log(`version: ${require(__dirname + '/package.json').version}`)
+  process.exit(0)
+}
+
 if (!filePath) {
 	console.warn('please specify a file path')
 	return process.exit(1)
