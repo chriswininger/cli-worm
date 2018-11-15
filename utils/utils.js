@@ -49,7 +49,7 @@ module.exports = Object.assign(Utils, {
 						logger.debug('could not find: ' + filePath)
 						reject('file not found: ' + filePath)
 					} else {
-						logger.debug('finished processing and found file')
+						logger.debug('finished processing and found file: ' + filePath)
 					}
 				})
 				.on('error', err => {

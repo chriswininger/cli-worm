@@ -105,6 +105,8 @@ module.exports = class UI extends EventEmitter {
             }
         });
 
+        // don't try to parse unix escape characters and such -- fix for setting text to {X,YY,ZZZ}
+        content.parseTags = false
         return content
     }
 
@@ -173,7 +175,11 @@ module.exports = class UI extends EventEmitter {
 					this.content.focus()
 					this.updateCurrentChapter()
 				})
-				.catch(err => this.setContent(`error rendering chapter: ${err}`))
+				.catch(err => {
+				  this.setContent(`error rendering chapter: ${err}`)
+          logger.debug(`error rendering chapter: "${err}"`)
+          logger.error(err)
+        })
 		})
 
         // === content scrolling ===
