@@ -1,6 +1,6 @@
 {
   "name": "cli-worm",
-  "version": "0.0.9",
+  "version": "0.01.00",
   "description": "an epub reader for the command line",
   "main": "index.js",
   "bin": {
@@ -24,9 +24,10 @@
     "async": "^2.6.0",
     "blessed": "^0.1.81",
     "dotenv": "^5.0.0",
-    "log4js": "^2.5.2",
+    "log4js": "^3.0.6",
     "mkdirp": "^0.5.1",
-    "sqlite": "^2.9.1",
+    "sqlite": "^3.0.0",
+    "sqlite3": "^4.0.4",
     "tmp": "0.0.33",
     "unzip": "^0.1.11",
     "xml-parser": "^1.2.1"
