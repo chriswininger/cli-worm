@@ -5,13 +5,15 @@ const path = require('path')
 const { renderChapter } = require(__dirname + '/../utils/utils.js')
 const logger = require(__dirname + '/../utils/utils.logger.js').getLogger('debug')
 
+const program = blessed.program()
 const selectedBorderColor = '#008000'
 const unSelectedBorderColor = '#f0f0f0'
 
 module.exports = class UI extends EventEmitter {
     constructor(title, filePath, chapterList, contentFolder, db) {
         super()
-		this.title = title
+
+        this.title = title
         this.screen = this.createScreenDisplay()
 		this.fileName = path.basename(filePath)
 
@@ -69,8 +71,15 @@ module.exports = class UI extends EventEmitter {
             },
             style: {
                 fg: 'white',
+                bg: 'black',
+                selectedBorderColor: 'green',
                 border: {
                     fg: unSelectedBorderColor
+                },
+                selected: {
+                  fg: selectedBorderColor,
+                  bg: 'black',
+                  bold: true
                 }
             }
         });
@@ -99,6 +108,7 @@ module.exports = class UI extends EventEmitter {
             },
             style: {
                 fg: 'white',
+                bg: 'black',
                 border: {
                     fg: '#f0f0f0'
                 }
