@@ -8,7 +8,7 @@ grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
 apps:
   cli-worm:
-    command: cli-worm
+    command: env LC_ALL=C.UTF-8 cli-worm
 
 parts:
   cli-worm:
