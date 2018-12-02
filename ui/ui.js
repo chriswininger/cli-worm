@@ -72,8 +72,9 @@ module.exports = class UI extends EventEmitter {
             style: {
                 fg: 'white',
                 bg: 'black',
-                selectedBorderColor: 'green',
+                selectedBorderColor: selectedBorderColor,
                 border: {
+                    bg: 'black',
                     fg: unSelectedBorderColor
                 },
                 selected: {
@@ -100,18 +101,20 @@ module.exports = class UI extends EventEmitter {
             alwaysScroll: true,
             keyable: true,
             clickable: true,
-            scrollbar: {
-                bg: 'white'
-            },
             border: {
-                type: 'line'
+              type: 'line'
             },
             style: {
-                fg: 'white',
+              fg: 'white',
+              bg: 'black',
+              selectedBorderColor: 'green',
+              scrollbar: {
+                bg: 'white'
+              },
+              border: {
                 bg: 'black',
-                border: {
-                    fg: '#f0f0f0'
-                }
+                fg: unSelectedBorderColor
+              },
             }
         });
 
