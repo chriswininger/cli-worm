@@ -1,20 +1,22 @@
-name:  cli-worm # you probably want to 'snapcraft register <name>'
-version: '0.01.01'
-summary:  an epub reader for the command line # 79 char long summary
+name:  cli-worm
+version: '0.01.02'
+summary:  an epub reader for the command line
 description: |
   A simple command line ncurses style interface for reading epubs
 
-grade: stable # must be 'stable' to release into candidate/stable channels
-confinement: strict # use 'strict' once you have the right plugs and slots
+grade: stable
+confinement: strict
 apps:
   cli-worm:
-    command: env LC_ALL=C.UTF-8 cli-worm
+    command: env LC_ALL=C.UTF-8 cli-worm # set LC_ALL env value when running to properly display utf8 characters
+    plugs:
+      - home
+      - removable-media
 
 parts:
   cli-worm:
-    # See 'snapcraft plugins'
     source: .
     plugin: nodejs
     node-engine: '9.11.2'
     stage-packages:
-      - w3m
+      - w3m # used to render xhtml to cli safe text
