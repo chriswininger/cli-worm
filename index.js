@@ -12,8 +12,8 @@ const logger = getLogger('debug')
 const { filePath, flags } = argumentParser(process.argv)
 
 if (flags.help) {
-	showHelp()
-	process.exit(0)
+  showHelp()
+  process.exit(0)
 }
 
 if (flags.version || flags.Version) {
@@ -22,57 +22,56 @@ if (flags.version || flags.Version) {
 }
 
 if (!filePath) {
-	console.warn('please specify a file path')
-	return process.exit(1)
+  console.warn('please specify a file path')
+  return process.exit(1)
 }
 
 let contentFolder = null
 
 getRootFile(filePath)
-	.then((mainFileInfo) => {
-		contentFolder = mainFileInfo.folder
-		return getNCXFile(filePath, mainFileInfo.filePath)
-	})
-	.then(chpFile => {
-		return new Promise(async (resolve, reject) => {
-			try {
-				// location is specified relative to the location of the main file (opf) was found
-				const chapterList = await getChapters(filePath, `${contentFolder}/${chpFile}`)
-				const title = await getTitle(filePath, `${contentFolder}/${chpFile}`)
-				resolve({ chapterList, title})
-			} catch (ex) {
-				reject(ex)
-			}
-		})
+    .then((mainFileInfo) => {
+      contentFolder = mainFileInfo.folder
+      return getNCXFile(filePath, mainFileInfo.filePath)
+    })
+    .then(chpFile => {
+      return new Promise(async (resolve, reject) => {
+        try {
+          // location is specified relative to the location of the main file (opf) was found
+          const chapterList = await getChapters(filePath, `${contentFolder}/${chpFile}`)
+          const title = await getTitle(filePath, `${contentFolder}/${chpFile}`)
+          resolve({ chapterList, title})
+        } catch (ex) {
+          reject(ex)
+        }
+      })
 
-	}).then(({chapterList, title}) => {
-    	logger.debug(`chapters: ${JSON.stringify(chapterList, null, 4)}`)
+    }).then(({chapterList, title}) => {
+  logger.debug(`chapters: ${JSON.stringify(chapterList, null, 4)}`)
 
-		// check the flags and execute any cli commands that may be specified by the flags
-		runCliCommands(flags, filePath, chapterList, contentFolder, async (err, handled) => {
-			if (err) {
-				// we specified a command but could not fulfill it
-				console.error(err)
-				process.exit(1)
-			} else if (handled) {
-				// we specified and handled a cli command nothing else to do
-				process.exit(0)
-			} else {
-				// we are not performing a cli command, launch the ncurses interface
-				let db = null
-				try {
-					db = await getDBForMetaContent()
-				} catch(ex) {
-					console.error(ex)
-					return process.exit(1)
-				}
+  // check the flags and execute any cli commands that may be specified by the flags
+  runCliCommands(flags, filePath, chapterList, contentFolder, async (err, handled) => {
+    if (err) {
+      // we specified a command but could not fulfill it
+      console.error(err)
+      process.exit(1)
+    } else if (handled) {
+      // we specified and handled a cli command nothing else to do
+      process.exit(0)
+    } else {
+      // we are not performing a cli command, launch the ncurses interface
+      let db = null
+      try {
+        db = await getDBForMetaContent()
+      } catch(ex) {
+        console.error(ex)
+        return process.exit(1)
+      }
 
-				const ui = new UI(title, filePath, chapterList, contentFolder, db)
-				ui.on('close', () => process.exit(0))
-			}
-		})
-	})
-	.catch(err => {
-		console.error(err)
-		process.exit(1)
-	})
+      const ui = new UI(title, filePath, chapterList, contentFolder, db)
+      ui.on('close', () => process.exit(0))
+    }
+  })
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
+})

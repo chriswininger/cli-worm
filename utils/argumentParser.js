@@ -1,31 +1,31 @@
 module.exports = (args) => {
-	const flags = {}
-	let filePath = null
+  const flags = {}
+  let filePath = null
 
-	if (args.length === 3 && args[2][0] !== '-') {
-		// nothing but the filePath given
-		return { filePath: args[2], flags }
-	}
+  if (args.length === 3 && args[2][0] !== '-') {
+    // nothing but the filePath given
+    return { filePath: args[2], flags }
+  }
 
-	// drop first two args (node, and app path)
-	args.forEach((argVal, ndx) => {
-		if (argVal[0] === '-' && argVal[1] === '-') {
-			// found flag
-			flags[argVal.slice(2)] = true
+  // drop first two args (node, and app path)
+  args.forEach((argVal, ndx) => {
+    if (argVal[0] === '-' && argVal[1] === '-') {
+      // found flag
+      flags[argVal.slice(2)] = true
     } else if (argVal[0] === '-' && argVal[1] === 'h') {
       flags.help = true
     } else if (argVal[0] === '-' && argVal[1] === 'v') {
       flags.version = true
-		} else if (ndx === args.length - 1) {
+    } else if (ndx === args.length - 1) {
       // lost position and not a flag so this is our filePath
       filePath = argVal
-		} else {
-			// hmm something we don't understand
-		}
-	})
+    } else {
+      // hmm something we don't understand
+    }
+  })
 
-	return {
-		filePath,
-		flags
-	}
+  return {
+    filePath,
+    flags
+  }
 }
