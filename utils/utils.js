@@ -1,5 +1,4 @@
-const fs = require('fs')
-const unzip = require('unzip')
+const yauzl = require("yauzl")
 const parse = require('xml-parser')
 const { spawn } = require('child_process')
 const path = require('path')
@@ -21,52 +20,54 @@ const nodeMatch = (node, val) => {
 module.exports = Object.assign(Utils, {
   getFileFromEPub(ePubPath, filePath) {
     return new Promise((resolve, reject) => {
-      let found = false
-
       logger.debug(`looking for file ${filePath}`)
-      fs.createReadStream(ePubPath)
-          .pipe(unzip.Parse())
-          .on('entry', function (entry) {
-            // normalize for opening /
-            const entryPath = entry.path[0] === '/' ? entry.path.slice(1) : entry.path
-            filePath = filePath[0] === '/' ? filePath.slice(1) : filePath
+      yauzl.open(ePubPath, {lazyEntries: true }, (err, zipfile) => {
+        if (err) {
+          return reject(err)
+        }
 
-            if (entry.type === 'File'  && entryPath === filePath.split('#')[0]) {
-              found = true
-              logger.debug('found file ' + filePath + ' begging gathering contents')
+        zipfile.readEntry()
+        zipfile.on('entry', entry => {
+          // normalize for opening /
+          const entryPath = entry.fileName[0] === '/' ? entry.fileName.slice(1) : entry.fileName
+          filePath = filePath[0] === '/' ? filePath.slice(1) : filePath
+
+          if (/\/$/.test(entry.fileName)) {
+            // read the directory, keep parsing
+            zipfile.readentry()
+          } else if (entryPath === filePath.split('#')[0]) { // it's a file and it matches
+            // it's a file and it matches
+            logger.debug('found file ' + filePath + ' begging gathering contents')
+
+            zipfile.openReadStream(entry, function (err, readStream) {
+              if (err) {
+                return reject(err)
+              }
 
               let chp = ''
-              entry.on('data', data => {
+              readStream.on('data', data => {
                 chp += data.toString()
               })
-              entry.on('end', () => {
-                entry.removeAllListeners()
-                entry.autodrain()
+              readStream.on('end', () => {
+                //entry.removeAllListeners()
+                //entry.autodrain()
                 logger.debug('done gathering contents of ' + filePath)
+                zipfile.close()
                 resolve(chp)
               })
-              entry.on('error', err => {
+              readStream.on('error', err => {
                 logger.debug('failed to get contents for ' + filePath + ': ' + err)
-                entry.autodrain()
+                // entry.autodrain()
+                zipfile.close()
                 reject(err)
               })
-            } else {
-              logger.debug(`passing over ${entryPath} while searching for ${filePath}`)
-              entry.autodrain()
-            }
-          })
-          .on('close', () => {
-            if (!found) {
-              logger.debug('could not find: ' + filePath)
-              reject('file not found: ' + filePath)
-            } else {
-              logger.debug('finished processing and found file: ' + filePath)
-            }
-          })
-          .on('error', err => {
-            if (!found)
-              reject(err)
-          })
+            })
+          } else {
+            logger.debug(`passing over ${entryPath} while searching for ${filePath}`)
+            zipfile.readEntry()
+          }
+        })
+      })
     })
   },
   getRootFile(ePubPath) {
