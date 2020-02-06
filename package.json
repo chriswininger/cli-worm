@@ -21,7 +21,7 @@
   "author": "Chris Wininger",
   "license": "MIT",
   "dependencies": {
-    "async": "^2.6.0",
+    "async": "^3.1.1",
     "blessed": "^0.1.81",
     "dotenv": "^5.0.0",
     "log4js": "^3.0.6",
