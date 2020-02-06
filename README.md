@@ -20,7 +20,7 @@ A simple CLI epub reader
 * w3m
     * [OSX Instructions](http://macappstore.org/w3m/)
     * [Ubuntu](https://www.howtoinstall.co/en/ubuntu/xenial/w3m)
-* nodeJS (>= 6.9.2)
+* nodeJS (>= 10.19.0)
     * I recommend first installing [nvm](https://github.com/creationix/nvm/blob/master/README.md) first,
     then simply running, `nvm install node 8.9.4`, but you can also install node directly. Google
     for your platform of choice 
