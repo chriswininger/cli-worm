@@ -5,8 +5,9 @@ const path = require('path')
 const { renderChapter } = require(__dirname + '/../utils/utils.js')
 const logger = require(__dirname + '/../utils/utils.logger.js').getLogger('debug')
 
-const selectedBorderColor = '#008000'
-const unSelectedBorderColor = '#f0f0f0'
+const SELECTED_BORDER_COLOR = '#008000'
+const UNSELECTED_BORDER_COLOR = '#f0f0f0'
+const SCROLL_BAR_COLOR = SELECTED_BORDER_COLOR
 
 module.exports = class UI extends EventEmitter {
   constructor(title, filePath, chapterList, contentFolder, db) {
@@ -21,10 +22,12 @@ module.exports = class UI extends EventEmitter {
 
     this.chapters = this.createChaptersDisplay()
     this.content = this.createContentDisplay()
+
     this.filePath = filePath
     this.contentFolder = contentFolder
     this.db = db
     this.createEventHandlers(this.screen, this.chapters, this.content)
+
     this.screen.append(this.chapters)
     this.screen.append(this.content)
 
@@ -71,13 +74,13 @@ module.exports = class UI extends EventEmitter {
       style: {
         fg: 'white',
         bg: 'black',
-        selectedBorderColor: selectedBorderColor,
+        selectedBorderColor: SELECTED_BORDER_COLOR,
         border: {
           bg: 'black',
-          fg: unSelectedBorderColor
+          fg: UNSELECTED_BORDER_COLOR
         },
         selected: {
-          fg: selectedBorderColor,
+          fg: SELECTED_BORDER_COLOR,
           bg: 'black',
           bold: true
         }
@@ -98,6 +101,9 @@ module.exports = class UI extends EventEmitter {
       mouse: true,
       scrollable: true,
       alwaysScroll: true,
+      scrollbar: {
+          bg: 'green'
+      },
       keyable: true,
       clickable: true,
       border: {
@@ -106,13 +112,10 @@ module.exports = class UI extends EventEmitter {
       style: {
         fg: 'white',
         bg: 'black',
-        selectedBorderColor: 'green',
-        scrollbar: {
-          bg: 'white'
-        },
+        selectedBorderColor: SCROLL_BAR_COLOR,
         border: {
           bg: 'black',
-          fg: unSelectedBorderColor
+          fg: UNSELECTED_BORDER_COLOR
         },
       }
     })
@@ -232,19 +235,19 @@ module.exports = class UI extends EventEmitter {
 
     // === updating appearance based on active focus content/chapters
     content.on('focus', () => {
-      content.style.border.fg = selectedBorderColor
+      content.style.border.fg = SELECTED_BORDER_COLOR
       this.render()
     })
     chapters.on('focus', () => {
-      chapters.style.border.fg = selectedBorderColor
+      chapters.style.border.fg = SELECTED_BORDER_COLOR
       this.render()
     })
     content.on('blur', () => {
-      content.style.border.fg = unSelectedBorderColor
+      content.style.border.fg = UNSELECTED_BORDER_COLOR
       this.render()
     })
     chapters.on('blur', () => {
-      chapters.style.border.fg = unSelectedBorderColor
+      chapters.style.border.fg = UNSELECTED_BORDER_COLOR
       this.render()
     })
   }
