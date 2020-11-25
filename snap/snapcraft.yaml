@@ -1,5 +1,5 @@
 name:  cli-worm
-version: '0.01.02'
+version: '0.01.03'
 summary:  an epub reader for the command line
 description: |
   A simple command line ncurses style interface for reading epubs
@@ -17,6 +17,6 @@ parts:
   cli-worm:
     source: .
     plugin: nodejs
-    node-engine: '9.11.2'
+    node-engine: '10.19.0'
     stage-packages:
       - w3m # used to render xhtml to cli safe text
