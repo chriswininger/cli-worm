@@ -1,4 +1,5 @@
 const sqlite = require('sqlite')
+const sqlite3 = require('sqlite3')
 const fs = require('fs')
 const logger = require(__dirname + '/utils.logger.js').getLogger('debug')
 const path = require('path')
@@ -22,7 +23,8 @@ module.exports = {
 
     const createTable = () => new Promise(async (resolve, reject) => {
       try {
-        const db = await sqlite.open(dbFilePath, { Promise })
+        const db = await openDb(dbFilePath)
+
         await db.get(
 							`CREATE TABLE current_positions
 					(
@@ -53,7 +55,7 @@ module.exports = {
         } else {
           try {
             logger.debug('database file already exists, return connection')
-            const db = await sqlite.open(dbFilePath, {Promise})
+            const db = await openDb(dbFilePath)
             resolve(db)
           } catch (ex) {
             reject(ex)
@@ -68,4 +70,8 @@ module.exports = {
   setCurrentPostion() {
 
   }
+}
+
+function openDb(dbFilePath) {
+  return sqlite.open({ filename: dbFilePath, driver: sqlite3.Database })
 }
