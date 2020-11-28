@@ -1,5 +1,6 @@
 name:  cli-worm
-version: '0.01.03'
+base: core20
+version: '0.2.0'
 summary:  an epub reader for the command line
 description: |
   A simple command line ncurses style interface for reading epubs
@@ -16,7 +17,18 @@ apps:
 parts:
   cli-worm:
     source: .
-    plugin: nodejs
-    node-engine: '10.19.0'
+    plugin: npm
+    npm-node-version: v14.15.1
+    override-build: |
+      echo 'build start'
+      pwd
+      echo 'npm_config_unsafe_perm=true' >> ~/.npmrc
+      echo 'npm_config_user=0' >> ~/.npmrc
+      env npm_config_user=0
+      env npm_config_unsafe_perm=true
+      snapcraftctl build
     stage-packages:
       - w3m # used to render xhtml to cli safe text
+      - gcc # Used to make sqllite compile correction on npm install
+      - g++ # Used to make sqllite compile correction on npm install
+      - libsqlite3-0
