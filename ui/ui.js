@@ -36,18 +36,33 @@ module.exports = class UI extends EventEmitter {
     this.chapters.focus()
     this.render()
 
-    logger.debug('check for existing last positions')
-    this.getCurrentChapter()
-        .then(pos => {
-          if (pos) {
-            logger.debug('selecting chapter based on last reading session: ' + pos.chapter_index)
-            this.setSelectedChapter(pos.chapter_index)
-            this.render()
-          }
-        })
-        .catch(ex => logger.debug('error getting last reading position: ' + ex))
+    logger.debug('check for persisted position in book')
+
+    this.initializePositionFromStorage()
   }
 
+  async initializePositionFromStorage() {
+
+    try {
+      const pos = await this.getBookPositionFromStorage()
+
+      if (pos) {
+        const chapterIndex = pos.chapter_index
+        const chapterPercent = pos.chapter_position || 0
+
+        logger.debug('selecting chapter based on last reading session: ' + chapterIndex + ', ' + chapterPercent)
+
+        await this.setSelectedChapter(chapterIndex)
+
+        logger.debug(`scroll to ${chapterPercent}`)
+        this.content.setScrollPerc(chapterPercent)
+
+        this.render()
+      }
+    } catch (ex) {
+      logger.debug('error getting last reading position: ' + ex)
+    }
+  }
   createScreenDisplay() {
     const screen = blessed.screen({
       smartCSR: true
@@ -129,6 +144,7 @@ module.exports = class UI extends EventEmitter {
     if (ndx >= this.chaptersList.length || ndx < 0)
       return logger.debug('preventing chapter from being set to a value outside of bounds')
 
+    logger.debug(`setSelectedChapter(${ndx})`)
     this.chapterNDX = ndx
     this.chapters.select(ndx)
 
@@ -136,6 +152,7 @@ module.exports = class UI extends EventEmitter {
   }
 
   renderSelectedChapter() {
+    logger.debug('renderSelectedChapter')
     const chp = this.chaptersList[this.chapterNDX]
 
     return renderChapter(this.filePath, `${this.contentFolder}/${chp.link}`)
@@ -143,7 +160,7 @@ module.exports = class UI extends EventEmitter {
         logger.debug('in render chapter promise handler')
         this.setContent(text)
         this.content.focus()
-        this.updateCurrentChapter()
+        this.persistBookPosition()
       })
       .catch(err => {
         this.setContent(`error rendering chapter: ${err}`)
@@ -152,7 +169,7 @@ module.exports = class UI extends EventEmitter {
       })
   }
 
-  incrementChapter() {
+  async incrementChapter() {
     if (this.chapterNDX < this.chaptersList.length - 1) {
       // advance chapter selection
       if (this.chaptersList[this.chapterNDX + 1].isSubChapter) {
@@ -161,7 +178,7 @@ module.exports = class UI extends EventEmitter {
         return this.incrementChapter()
       }
 
-      this.setSelectedChapter(this.chapterNDX + 1)
+      await this.setSelectedChapter(this.chapterNDX + 1)
     }
   }
 
@@ -209,39 +226,47 @@ module.exports = class UI extends EventEmitter {
     })
 
     // === content scrolling ===
-    screen.key(['pagedown'], () => {
+    screen.key(['pagedown'], async () => {
       if (!isAtBottom()) {
         content.scroll(this.content.height - 2)
         this.render()
       } else {
-        this.incrementChapter()
+        await this.incrementChapter()
       }
+
+      this.persistBookPosition()
     })
-    screen.key(['pageup'], () => {
+    screen.key(['pageup'], async () => {
       if (!isAtTop()) {
         content.scroll(0 - this.content.height - 2)
         this.render()
       } else {
-        this.decrementChapter()
+        await this.decrementChapter()
       }
+
+      this.persistBookPosition()
     })
-    content.key('down', ()=> {
+    content.key('down', async ()=> {
       if (!isAtBottom()) {
         content.scroll(1)
         screen.render()
       } else  {
         // advance chapter selection
-        this.incrementChapter()
+        await this.incrementChapter()
       }
+
+      this.persistBookPosition()
     })
-    content.key('up', ()=> {
+    content.key('up', async ()=> {
       if (!isAtTop()) {
         content.scroll(-1)
         screen.render()
       } else {
         // go back one chapter
-        this.decrementChapter()
+        await this.decrementChapter()
       }
+
+      this.persistBookPosition()
     })
 
     // === updating appearance based on active focus content/chapters
@@ -278,25 +303,24 @@ module.exports = class UI extends EventEmitter {
     this.screen.render()
   }
 
-  getCurrentChapter() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const results = await this.db.get(`
+  async getBookPositionFromStorage() {
+    logger.debug('get persisted book position')
+    const positionRow = await this.db.get(`
     				SELECT * FROM current_positions
     				WHERE book_unique_title_hash = '${this.uniqueTitleHash}'
     			`)
-        resolve(results)
-      } catch (ex) {
-        reject(ex)
-      }
-    })
+
+    logger.debug(`position ${JSON.stringify(positionRow)}`)
+    return positionRow
   }
-  updateCurrentChapter() {
+  persistBookPosition() {
+    logger.debug(`persist position in book '${this.chapterNDX}', ${this.content.getScrollPerc()}`)
+
     this.db.get(`
 			REPLACE INTO current_positions
 				(book_unique_title_hash, book_title, book_path, chapter_index, chapter_position, last_updated)
 				VALUES
-				('${this.uniqueTitleHash}', '${this.title}', '${ this.filePath }', '${this.chapterNDX}', null, ${Date.now()})
+				('${this.uniqueTitleHash}', '${this.title}', '${ this.filePath }', '${this.chapterNDX}', ${this.content.getScrollPerc()}, ${Date.now()})
 		`).catch(err => this.setContent(`error updating position: ${err}`))
   }
 }
