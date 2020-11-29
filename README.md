@@ -37,4 +37,11 @@ A simple CLI epub reader
 * `--dumpdumpChapterList`: prints a list of all chapters in the e-pub with each chapter separated by a new line charater and each line containing the chapter title and the path to the chapter within the e-pub separated by commas
 * `--dumpFullText`: dumps the entire text of all chapters in the book to the command line
 
+### Debugging
+
+This project uses log4j. To turn on debug logs set the Level to debug on the environment.
+
+Example: `Level=debug node ./index.js ~/Documents/Books\ And\ Papers/Books/polarized.epub`
+
+You can then tail debug.log file to see output 
 

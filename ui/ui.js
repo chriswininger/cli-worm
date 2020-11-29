@@ -41,7 +41,7 @@ module.exports = class UI extends EventEmitter {
         .then(pos => {
           if (pos) {
             logger.debug('selecting chapter based on last reading session: ' + pos.chapter_index)
-            this.selectChapter(pos.chapter_index)
+            this.setSelectedChapter(pos.chapter_index)
             this.render()
           }
         })
@@ -125,13 +125,31 @@ module.exports = class UI extends EventEmitter {
     return content
   }
 
-  selectChapter(ndx) {
+  setSelectedChapter(ndx) {
     if (ndx >= this.chaptersList.length || ndx < 0)
       return logger.debug('preventing chapter from being set to a value outside of bounds')
 
     this.chapterNDX = ndx
     this.chapters.select(ndx)
-    this.emit('chapter-select', this.chaptersList[ndx])
+
+    return this.renderSelectedChapter()
+  }
+
+  renderSelectedChapter() {
+    const chp = this.chaptersList[this.chapterNDX]
+
+    return renderChapter(this.filePath, `${this.contentFolder}/${chp.link}`)
+      .then(text => {
+        logger.debug('in render chapter promise handler')
+        this.setContent(text)
+        this.content.focus()
+        this.updateCurrentChapter()
+      })
+      .catch(err => {
+        this.setContent(`error rendering chapter: ${err}`)
+        logger.debug(`error rendering chapter: "${err}"`)
+        logger.error(err)
+      })
   }
 
   incrementChapter() {
@@ -143,11 +161,11 @@ module.exports = class UI extends EventEmitter {
         return this.incrementChapter()
       }
 
-      this.selectChapter(this.chapterNDX + 1)
+      this.setSelectedChapter(this.chapterNDX + 1)
     }
   }
 
-  decrementChapter() {
+  async decrementChapter() {
     if (this.chapterNDX > 0) {
       // advance chapter selection
       if (this.chaptersList[this.chapterNDX - 1].isSubChapter) {
@@ -156,8 +174,15 @@ module.exports = class UI extends EventEmitter {
         return this.decrementChapter()
       }
 
-      this.selectChapter(this.chapterNDX - 1)
+      await this.setSelectedChapter(this.chapterNDX - 1)
+      this.scrollToEndOfChapter()
     }
+  }
+
+  scrollToEndOfChapter() {
+    logger.debug('scrolling to the top of the chapter')
+    this.content.setScrollPerc(100)
+    this.render()
   }
 
   createEventHandlers(screen, chapters, content) {
@@ -169,7 +194,7 @@ module.exports = class UI extends EventEmitter {
     }
 
     // exit the application
-    screen.key(['escape', 'q', 'C-c'], () => {
+    screen.key(['escape', 'Q', 'q', 'C-c'], () => {
       this.emit('close')
     })
 
@@ -180,21 +205,7 @@ module.exports = class UI extends EventEmitter {
 
     // chapter selection
     chapters.on('select', (event, ndx) => {
-      this.selectChapter(ndx)
-    })
-
-    this.on('chapter-select', (chp) => {
-      renderChapter(this.filePath, `${this.contentFolder}/${chp.link}`)
-          .then(text => {
-            this.setContent(text)
-            this.content.focus()
-            this.updateCurrentChapter()
-          })
-          .catch(err => {
-            this.setContent(`error rendering chapter: ${err}`)
-            logger.debug(`error rendering chapter: "${err}"`)
-            logger.error(err)
-          })
+      this.setSelectedChapter(ndx)
     })
 
     // === content scrolling ===
