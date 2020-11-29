@@ -8,7 +8,7 @@
   },
   "repository": "chriswininger/cli-worm",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\""
   },
   "keywords": [
     "epub",
@@ -27,7 +27,7 @@
     "log4js": "^3.0.6",
     "mkdirp": "^1.0.4",
     "sqlite": "^4.0.17",
-    "sqlite3": "4.2.0",
+    "sqlite3": "5.0.0",
     "tmp": "0.0.33",
     "yauzl": "2.10.0",
     "xml-parser": "^1.2.1"
