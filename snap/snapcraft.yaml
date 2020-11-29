@@ -30,4 +30,3 @@ parts:
       echo 'build end'
     stage-packages:
       - w3m # used to render xhtml to cli safe text
-      - node-pre-gyp
