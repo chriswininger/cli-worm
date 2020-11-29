@@ -1,5 +1,6 @@
 name:  cli-worm
-version: '0.01.03'
+base: core20
+version: '0.2.0'
 summary:  an epub reader for the command line
 description: |
   A simple command line ncurses style interface for reading epubs
@@ -8,7 +9,7 @@ grade: stable
 confinement: strict
 apps:
   cli-worm:
-    command: env LC_ALL=C.UTF-8 cli-worm # set LC_ALL env value when running to properly display utf8 characters
+    command: bin/cli-worm
     plugs:
       - home
       - removable-media
@@ -16,7 +17,17 @@ apps:
 parts:
   cli-worm:
     source: .
-    plugin: nodejs
-    node-engine: '10.19.0'
+    plugin: npm
+    npm-node-version: 14.8.0
+    override-build: |
+      echo 'build start'
+      echo "https://nodejs.org/dist/v14.8.0/node-v14.8.0-linux-$ARCH.tar.gz"
+      curl -s https://nodejs.org/dist/v14.8.0/node-v14.8.0-linux-x64.tar.gz | tar xzf - -C "$SNAPCRAFT_PART_INSTALL" --strip-components=1
+            npm config set user 0
+            npm config set unsafe-perm true
+            npm install
+            npm install -g --prefix "${SNAPCRAFT_PART_INSTALL}" $(npm pack . | tail -1)
+      echo 'build end'
     stage-packages:
       - w3m # used to render xhtml to cli safe text
+      - node-pre-gyp

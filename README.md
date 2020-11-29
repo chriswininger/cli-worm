@@ -1,4 +1,5 @@
-## cli-worm
+cli-worm
+------------------
 
 A simple CLI epub reader
 
