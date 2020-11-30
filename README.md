@@ -5,6 +5,8 @@ A simple CLI epub reader
 
 [![DepShield Badge](https://depshield.sonatype.org/badges/chriswininger/cli-worm/depshield.svg)](https://depshield.github.io)
 
+![Alt text](docs/images/cli-worm-logo.png?raw=true "logo")
+
 #### Description
 
 * Do you want to read an epub file, but you're too lazy to move your hand from the keyboard to the mouse?
