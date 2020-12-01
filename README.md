@@ -17,7 +17,12 @@ A simple CLI epub reader
 
   **Then this app is for you!**
 
-![Alt text](docs/images/cli-worm-screen-grab.png?raw=true "Screen Capture")
+#### Install on Linux with Snaps
+
+`sudo snap install cli-worm`
+
+#### Install with npm (See prerequisites below)
+`npm install -g cli-worm`
 
 #### Prerequisites
 * w3m
@@ -28,12 +33,22 @@ A simple CLI epub reader
     then simply running, `nvm install node 8.9.4`, but you can also install node directly. Google
     for your platform of choice 
 
-#### Installation Instructions
-`npm install -g cli-worm`
 
 ### Usage
 
 `cli-worm [--flags] <filePath>`
+
+This will a ncurses interface.
+
+![Alt text](docs/images/cli-worm-screen-grab.png?raw=true "Screen Capture")
+
+You should see a chapter list on the right and the contents of the selected chapter on the left.
+
+You can switch between chapter selection and contents scrolling with the tab button.
+
+The up and down arrows scroll the content. You can can also use pg-up or pg-down.
+
+**To Exit** press `q`, `escape` or `ctrl+c`
 
 ### flags
 * `--dumpdumpChapterList`: prints a list of all chapters in the e-pub with each chapter separated by a new line charater and each line containing the chapter title and the path to the chapter within the e-pub separated by commas
