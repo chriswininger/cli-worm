@@ -3,6 +3,8 @@ cli-worm
 
 A simple CLI epub reader
 
+[![DepShield Badge](https://depshield.sonatype.org/badges/chriswininger/cli-worm/depshield.svg)](https://depshield.github.io)
+
 ![Alt text](docs/images/cli-worm-logo.png?raw=true "logo")
 
 #### Description
