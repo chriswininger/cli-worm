@@ -23,4 +23,3 @@ steps:
     stage: 'Build'
     applicationId: '$(Build.Repository.ID)'
     applicationDisplayName: '$(Build.Repository.Name)'
-    enableDebug: true
