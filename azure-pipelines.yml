@@ -22,5 +22,5 @@ steps:
   inputs:
     SonatypeCloudService: 'staging-cloud.sonatype.com'
     stage: 'Build'
-    applicationId: 'cli-worm'
+    applicationId: 'chriswininger/cli-worm'
     applicationDisplayName: '$(Build.Repository.Name)'
