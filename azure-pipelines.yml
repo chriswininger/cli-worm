@@ -19,10 +19,14 @@ steps:
   displayName: 'Run a multi-line script'
 - task: Npm@1
   inputs:
-    command: 'install'
+    command: 'ci'
 - script: |
-    echo !!! node_modules contents
+    echo node_modules contents
     cat ./node_modules/npm-packlist/package.json
+    echo tree
+    npm ls
+    echo node version
+    node --version
   displayName: 'checkoutput'
 - task: SonatypeCloudPipelineTask@0
   inputs:
