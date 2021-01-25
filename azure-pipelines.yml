@@ -20,6 +20,10 @@ steps:
 - task: Npm@1
   inputs:
     command: 'install'
+- script: |
+    echo !!! node_modules contents
+    cat ./node_modules/npm-packlist/package.json
+  displayName: 'checkoutput'
 - task: SonatypeCloudPipelineTask@0
   inputs:
     SonatypeCloudService: 'staging-cloud.sonatype.com'
