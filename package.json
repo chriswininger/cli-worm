@@ -21,6 +21,7 @@
   "author": "Chris Wininger",
   "license": "MIT",
   "dependencies": {
+    "ajv": "^6.11.0",
     "async": "^3.1.1",
     "blessed": "^0.1.81",
     "dotenv": "^5.0.0",
@@ -29,7 +30,7 @@
     "sqlite": "^4.0.17",
     "sqlite3": "5.0.0",
     "tmp": "0.0.33",
-    "yauzl": "2.10.0",
-    "xml-parser": "^1.2.1"
+    "xml-parser": "^1.2.1",
+    "yauzl": "2.10.0"
   }
 }
