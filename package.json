@@ -21,7 +21,7 @@
   "author": "Chris Wininger",
   "license": "MIT",
   "dependencies": {
-    "ajv": "^6.11.0",
+    "ajv": "6.11.0",
     "minimist": "1.2.5",
     "request": "2.88.2",
     "async": "^3.1.1",
